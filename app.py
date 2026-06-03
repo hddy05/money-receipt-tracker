@@ -28,7 +28,9 @@ class InvoiceDetail(db.Model):
     quantity = db.Column(db.Integer, nullable=False)
     unit_price = db.Column(db.Integer, nullable=False)
     category = db.Column(db.String(20), nullable=True)
-
+# 🌟 新增這兩行：確保雲端引擎 (gunicorn) 啟動時，一定會建立空白資料表！
+with app.app_context():
+    db.create_all()
 # ==========================================
 # 首頁渲染邏輯
 # ==========================================
