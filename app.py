@@ -93,12 +93,27 @@ def logout():
     return redirect(url_for('login'))
 
 # ==========================================
-# 首頁與圖表 API (包含本月預算計算)
+# 🌟 首頁與進階搜尋邏輯
 # ==========================================
 @app.route('/')
 @login_required
 def index():
-    all_invoices = Invoice.query.filter_by(user_id=current_user.id).order_by(Invoice.id.desc()).all()
+    search_kw = request.args.get('search', '')
+    search_month = request.args.get('month', '')
+    
+    query = Invoice.query.filter_by(user_id=current_user.id)
+    
+    if search_kw:
+        # 同時搜尋「商家名稱」或發票明細裡面的「消費品項」
+        query = query.outerjoin(InvoiceDetail).filter(
+            (Invoice.seller_name.like(f"%{search_kw}%")) |
+            (InvoiceDetail.item_name.like(f"%{search_kw}%"))
+        ).distinct()
+        
+    if search_month:
+        query = query.filter(Invoice.date.startswith(search_month))
+        
+    all_invoices = query.order_by(Invoice.id.desc()).all()
     
     category_totals = db.session.query(
         InvoiceDetail.category,
@@ -107,19 +122,21 @@ def index():
     
     chart_data = {row.category: row.total for row in category_totals}
 
-    # 計算本月預算與花費
     current_month = datetime.now().strftime("%Y%m")
-    month_invoices = [inv for inv in all_invoices if inv.date.startswith(current_month)]
+    all_for_budget = Invoice.query.filter_by(user_id=current_user.id).all()
+    month_invoices = [inv for inv in all_for_budget if inv.date.startswith(current_month)]
     current_month_total = sum(inv.total_amount for inv in month_invoices)
     
-    monthly_budget = 20000  # 🌟 這裡可以隨時更改你的每月預算
+    monthly_budget = 20000
 
     return render_template('index.html', 
                            invoices=all_invoices, 
                            chart_data=chart_data, 
                            current_user=current_user,
                            current_month_total=current_month_total,
-                           monthly_budget=monthly_budget)
+                           monthly_budget=monthly_budget,
+                           search_kw=search_kw,
+                           search_month=search_month)
 
 @app.route('/api/trend_data')
 @login_required
@@ -132,9 +149,6 @@ def trend_data():
         
     return jsonify({"dates": list(trends.keys()), "amounts": list(trends.values())})
 
-# ==========================================
-# 🌟 一鍵匯出 CSV 報表 API
-# ==========================================
 @app.route('/api/export_csv')
 @login_required
 def export_csv():
@@ -157,7 +171,7 @@ def export_csv():
     )
 
 # ==========================================
-# 核心 API (載具、記帳、對獎)
+# 🌟 核心 API (強化載具資料產生器)
 # ==========================================
 @app.route('/api/sync_mock', methods=['GET'])
 @login_required
@@ -178,10 +192,14 @@ def sync_mock_data():
     total_amount = sum(item['unit_price'] for item in purchased_items)
     
     mock_date = f"202606{random.randint(1,9):02d}"
+    
+    # 🌟 讓假資料更加真實，隨機挑選商家
+    store_names = ["原價屋 八德店", "全家便利商店", "旺來鄉烘焙材料行", "台灣高鐵", "蝦皮購物", "統一超商"]
+    random_seller = random.choice(store_names)
 
     new_invoice = Invoice(
         user_id=current_user.id, inv_num=random_inv_num, date=mock_date, 
-        seller_name="系統模擬商家", total_amount=total_amount
+        seller_name=random_seller, total_amount=total_amount
     )
     db.session.add(new_invoice)
     db.session.commit()
