@@ -12,7 +12,7 @@ import io
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = 'your_super_secret_key_for_flask' # 登入系統必備的安全金鑰
+app.config['SECRET_KEY'] = 'your_super_secret_key_for_flask'
 db = SQLAlchemy(app)
 
 # ==========================================
@@ -20,14 +20,14 @@ db = SQLAlchemy(app)
 # ==========================================
 login_manager = LoginManager()
 login_manager.init_app(app)
-login_manager.login_view = 'login' # 沒登入的人會被趕去 /login 頁面
+login_manager.login_view = 'login'
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    return db.session.get(User, int(user_id))
 
 # ==========================================
-# 資料庫模型設計 (全新加入 User 表與外鍵綁定)
+# 資料庫模型設計
 # ==========================================
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -37,7 +37,7 @@ class User(UserMixin, db.Model):
 
 class Invoice(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False) # 綁定是誰的發票
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     inv_num = db.Column(db.String(20), unique=True, nullable=False)
     date = db.Column(db.String(8), nullable=False)
     seller_name = db.Column(db.String(50), nullable=False)
@@ -53,12 +53,11 @@ class InvoiceDetail(db.Model):
     unit_price = db.Column(db.Integer, nullable=False)
     category = db.Column(db.String(20), nullable=True)
 
-# 確保伺服器啟動時，一定會建立空白資料表！
 with app.app_context():
     db.create_all()
 
 # ==========================================
-# 使用者註冊與登入路由
+# 登入與註冊路由
 # ==========================================
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -69,7 +68,7 @@ def login():
 
         if action == 'register':
             if User.query.filter_by(username=username).first():
-                flash('帳號已存在！', 'danger')
+                flash('帳號已存在！請換一個名稱。', 'danger')
             else:
                 new_user = User(username=username, password_hash=generate_password_hash(password))
                 db.session.add(new_user)
@@ -94,7 +93,7 @@ def logout():
     return redirect(url_for('login'))
 
 # ==========================================
-# 首頁與圖表 API 邏輯 (只抓當前登入者的資料)
+# 首頁與圖表 API (包含本月預算計算)
 # ==========================================
 @app.route('/')
 @login_required
@@ -107,7 +106,20 @@ def index():
     ).join(Invoice).filter(Invoice.user_id == current_user.id).group_by(InvoiceDetail.category).all()
     
     chart_data = {row.category: row.total for row in category_totals}
-    return render_template('index.html', invoices=all_invoices, chart_data=chart_data, current_user=current_user)
+
+    # 計算本月預算與花費
+    current_month = datetime.now().strftime("%Y%m")
+    month_invoices = [inv for inv in all_invoices if inv.date.startswith(current_month)]
+    current_month_total = sum(inv.total_amount for inv in month_invoices)
+    
+    monthly_budget = 20000  # 🌟 這裡可以隨時更改你的每月預算
+
+    return render_template('index.html', 
+                           invoices=all_invoices, 
+                           chart_data=chart_data, 
+                           current_user=current_user,
+                           current_month_total=current_month_total,
+                           monthly_budget=monthly_budget)
 
 @app.route('/api/trend_data')
 @login_required
@@ -121,7 +133,31 @@ def trend_data():
     return jsonify({"dates": list(trends.keys()), "amounts": list(trends.values())})
 
 # ==========================================
-# 核心 API (全部綁定 current_user.id)
+# 🌟 一鍵匯出 CSV 報表 API
+# ==========================================
+@app.route('/api/export_csv')
+@login_required
+def export_csv():
+    invoices = Invoice.query.filter_by(user_id=current_user.id).order_by(Invoice.date.desc()).all()
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    writer.writerow(['發票號碼', '消費日期', '商家名稱', '總金額', '是否中獎'])
+    
+    for inv in invoices:
+        winner_status = '是' if inv.is_winner else '否'
+        formatted_date = f"{inv.date[:4]}/{inv.date[4:6]}/{inv.date[6:]}"
+        writer.writerow([inv.inv_num, formatted_date, inv.seller_name, inv.total_amount, winner_status])
+    
+    output.seek(0)
+    return Response(
+        '\ufeff' + output.getvalue(),
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment;filename=my_expenses.csv"}
+    )
+
+# ==========================================
+# 核心 API (載具、記帳、對獎)
 # ==========================================
 @app.route('/api/sync_mock', methods=['GET'])
 @login_required
@@ -141,7 +177,6 @@ def sync_mock_data():
     purchased_items = random.sample(item_pool, k=random.randint(1, 2))
     total_amount = sum(item['unit_price'] for item in purchased_items)
     
-    # 產生稍微不同的日期，讓折線圖有高低起伏
     mock_date = f"202606{random.randint(1,9):02d}"
 
     new_invoice = Invoice(
@@ -215,33 +250,6 @@ def check_lottery():
         return jsonify({"status": "success", "message": f"🎉 太神啦！共有 {winner_count} 張發票中獎！"})
     else:
         return jsonify({"status": "success", "message": "幫QQ，這次沒有發票中獎，下次再接再厲！"})
-# ==========================================
-# 🌟 新增：一鍵匯出 CSV 報表 API
-# ==========================================
-@app.route('/api/export_csv')
-@login_required
-def export_csv():
-    # 撈出登入者的所有發票
-    invoices = Invoice.query.filter_by(user_id=current_user.id).order_by(Invoice.date.desc()).all()
-    
-    output = io.StringIO()
-    writer = csv.writer(output)
-    
-    # 寫入 Excel 的標題列
-    writer.writerow(['發票號碼', '消費日期', '商家名稱', '總金額', '是否中獎'])
-    
-    # 把每一筆資料寫進去
-    for inv in invoices:
-        winner_status = '是' if inv.is_winner else '否'
-        formatted_date = f"{inv.date[:4]}/{inv.date[4:6]}/{inv.date[6:]}" # 格式化日期
-        writer.writerow([inv.inv_num, formatted_date, inv.seller_name, inv.total_amount, winner_status])
-    
-    output.seek(0)
-    # 加上 \ufeff (BOM) 確保 Excel 打開中文不會變亂碼
-    return Response(
-        '\ufeff' + output.getvalue(),
-        mimetype="text/csv",
-        headers={"Content-Disposition": "attachment;filename=my_expenses.csv"}
-    )
+
 if __name__ == '__main__':
     app.run(debug=True)
