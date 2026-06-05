@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>📊 智慧記帳與載具整合儀表板</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { 
@@ -30,7 +31,12 @@
             border-radius: 10px; padding: 0.6rem 1rem; border: 1px solid #e2e8f0;
         }
         .form-control:focus, .form-select:focus { box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15); }
-        .table-container { max-height: 340px; overflow-y: auto; }
+        .table-container { max-height: 380px; overflow-y: auto; }
+        
+        /* 🌟 新增：讓表格有「可點擊」的視覺回饋 */
+        .clickable-row { cursor: pointer; transition: background-color 0.2s; }
+        .clickable-row:hover { background-color: #e9ecef !important; }
+        .detail-row { background-color: #f8f9fa; }
     </style>
 </head>
 <body class="pb-5">
@@ -70,11 +76,6 @@
                             {{ percent }}%
                         </div>
                     </div>
-                    {% if current_month_total >= monthly_budget %}
-                    <p class="text-danger small mt-2 mb-0 fw-bold">⚠️ 警告：本月已超支！請注意財務狀況！</p>
-                    {% elif current_month_total >= monthly_budget * 0.8 %}
-                    <p class="text-warning small mt-2 mb-0 fw-bold">⚠️ 注意：本月預算已消耗超過 80%！</p>
-                    {% endif %}
                 </div>
             </div>
         </div>
@@ -103,31 +104,50 @@
         <div class="col-lg-7 mb-4">
             <div class="card h-100">
                 <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 fw-bold">🧾 載具發票紀錄</h5>
+                    <h5 class="mb-0 fw-bold">🧾 載具發票紀錄 (點擊展開明細)</h5>
                     <div>
                         <a href="/api/export_csv" class="btn btn-warning btn-sm fw-bold shadow-sm me-2 text-dark">📥 匯出報表</a>
                         <button onclick="syncData()" class="btn btn-light btn-sm fw-bold text-primary shadow-sm">🔄 模擬刷載具</button>
                     </div>
                 </div>
-                <div class="card-body table-container">
+                <div class="card-body table-container p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle mt-2">
-                            <thead class="table-light text-secondary">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light text-secondary sticky-top">
                                 <tr>
-                                    <th>發票號碼</th>
+                                    <th class="ps-4">發票號碼</th>
                                     <th>商家名稱</th>
                                     <th>總金額</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for invoice in invoices %}
-                                <tr class="{% if invoice.is_winner %}table-warning fw-bold{% endif %}">
-                                    <td>
+                                <tr class="clickable-row {% if invoice.is_winner %}table-warning fw-bold{% endif %}" 
+                                    data-bs-toggle="collapse" data-bs-target="#detail-{{ invoice.id }}">
+                                    <td class="ps-4">
                                         <code class="text-dark fw-semibold">{{ invoice.inv_num }}</code>
                                         {% if invoice.is_winner %} <span class="badge bg-danger ms-1">中獎! 🎉</span> {% endif %}
                                     </td>
                                     <td class="text-secondary small">{{ invoice.seller_name }}</td>
                                     <td class="text-danger fw-bold">${{ invoice.total_amount }}</td>
+                                </tr>
+                                
+                                <tr class="detail-row collapse" id="detail-{{ invoice.id }}">
+                                    <td colspan="3" class="p-0 border-0">
+                                        <div class="px-4 py-3 shadow-inner">
+                                            <strong class="text-muted small d-block mb-2">🛒 消費品項：</strong>
+                                            <ul class="list-unstyled mb-0 small text-secondary">
+                                                {% for detail in invoice.details %}
+                                                <li class="d-flex justify-content-between mb-1 border-bottom pb-1">
+                                                    <span>{{ detail.item_name }} <span class="badge bg-light text-dark ms-1">x {{ detail.quantity }}</span></span>
+                                                    <span class="text-dark">${{ detail.unit_price * detail.quantity }}</span>
+                                                </li>
+                                                {% else %}
+                                                <li>無明細紀錄</li>
+                                                {% endfor %}
+                                            </ul>
+                                        </div>
+                                    </td>
                                 </tr>
                                 {% else %}
                                 <tr><td colspan="3" class="text-center text-muted py-4">目前沒有紀錄</td></tr>
@@ -180,7 +200,6 @@
 </div>
 
 <script>
-    // 圓餅圖
     const rawChartData = {{ chart_data | tojson }};
     if (Object.keys(rawChartData).length > 0) {
         const ctx = document.getElementById('expenseChart').getContext('2d');
@@ -194,66 +213,40 @@
                     borderWidth: 0
                 }]
             },
-            options: { 
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } },
-                cutout: '75%' 
-            }
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } }, cutout: '75%' }
         });
     }
 
-    // 折線圖
-    fetch('/api/trend_data')
-        .then(res => res.json())
-        .then(trendData => {
-            const ctxTrend = document.getElementById('trendChart').getContext('2d');
-            new Chart(ctxTrend, {
-                type: 'line',
-                data: {
-                    labels: trendData.dates,
-                    datasets: [{
-                        label: '每日支出 ($)',
-                        data: trendData.amounts,
-                        borderColor: '#4e73df',
-                        backgroundColor: 'rgba(78, 115, 223, 0.05)',
-                        borderWidth: 3, tension: 0.3, fill: true,
-                        pointBackgroundColor: '#4e73df', pointHoverRadius: 6
-                    }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } },
-                    plugins: { legend: { display: false } } 
-                }
-            });
+    fetch('/api/trend_data').then(res => res.json()).then(trendData => {
+        const ctxTrend = document.getElementById('trendChart').getContext('2d');
+        new Chart(ctxTrend, {
+            type: 'line',
+            data: {
+                labels: trendData.dates,
+                datasets: [{
+                    label: '每日支出 ($)', data: trendData.amounts,
+                    borderColor: '#4e73df', backgroundColor: 'rgba(78, 115, 223, 0.05)',
+                    borderWidth: 3, tension: 0.3, fill: true,
+                    pointBackgroundColor: '#4e73df', pointHoverRadius: 6
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } }, plugins: { legend: { display: false } } }
         });
+    });
 
-    // API 呼叫
-    function syncData() {
-        fetch('/api/sync_mock').then(() => location.reload());
-    }
-
+    function syncData() { fetch('/api/sync_mock').then(() => location.reload()); }
     function submitManual() {
         const name = document.getElementById('manualName').value;
         const amount = document.getElementById('manualAmount').value;
         const category = document.getElementById('manualCategory').value;
-        
         if(!name || !amount) { alert('請完整填寫品項與金額！'); return; }
-
-        fetch('/api/add_manual', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ item_name: name, amount: amount, category: category })
-        }).then(res => res.json()).then(data => { alert(data.message); location.reload(); });
+        fetch('/api/add_manual', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ item_name: name, amount: amount, category: category }) })
+        .then(res => res.json()).then(data => { alert(data.message); location.reload(); });
     }
-
     function checkLottery() {
         const winningNum = document.getElementById('winningNumber').value;
-        fetch('/api/check_lottery', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ winning_number: winningNum })
-        }).then(res => res.json()).then(data => { alert(data.message); location.reload(); });
+        fetch('/api/check_lottery', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ winning_number: winningNum }) })
+        .then(res => res.json()).then(data => { alert(data.message); location.reload(); });
     }
 </script>
 
