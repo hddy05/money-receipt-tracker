@@ -1,25 +1,47 @@
-from flask import Flask, jsonify, render_template, request # 🌟 新增了 request
+from flask import Flask, jsonify, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import func
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
 import random
 import string
+from datetime import datetime
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = 'your_super_secret_key_for_flask' # 登入系統必備的安全金鑰
 db = SQLAlchemy(app)
 
 # ==========================================
-# 資料庫模型設計 (維持不變)
+# 登入管理員設定
 # ==========================================
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login' # 沒登入的人會被趕去 /login 頁面
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+# ==========================================
+# 資料庫模型設計 (全新加入 User 表與外鍵綁定)
+# ==========================================
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(50), unique=True, nullable=False)
+    password_hash = db.Column(db.String(256), nullable=False)
+    invoices = db.relationship('Invoice', backref='owner', lazy=True)
+
 class Invoice(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False) # 綁定是誰的發票
     inv_num = db.Column(db.String(20), unique=True, nullable=False)
     date = db.Column(db.String(8), nullable=False)
     seller_name = db.Column(db.String(50), nullable=False)
     total_amount = db.Column(db.Integer, nullable=False)
-    is_winner = db.Column(db.Boolean, default=False) # 🌟 這個欄位現在要派上用場了！
-    details = db.relationship('InvoiceDetail', backref='invoice', lazy=True)
+    is_winner = db.Column(db.Boolean, default=False)
+    details = db.relationship('InvoiceDetail', backref='invoice', lazy=True, cascade="all, delete-orphan")
 
 class InvoiceDetail(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -28,26 +50,79 @@ class InvoiceDetail(db.Model):
     quantity = db.Column(db.Integer, nullable=False)
     unit_price = db.Column(db.Integer, nullable=False)
     category = db.Column(db.String(20), nullable=True)
-# 🌟 新增這兩行：確保雲端引擎 (gunicorn) 啟動時，一定會建立空白資料表！
+
+# 確保伺服器啟動時，一定會建立空白資料表！
 with app.app_context():
     db.create_all()
+
 # ==========================================
-# 首頁渲染邏輯
+# 使用者註冊與登入路由
+# ==========================================
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        action = request.form.get('action')
+        username = request.form.get('username')
+        password = request.form.get('password')
+
+        if action == 'register':
+            if User.query.filter_by(username=username).first():
+                flash('帳號已存在！', 'danger')
+            else:
+                new_user = User(username=username, password_hash=generate_password_hash(password))
+                db.session.add(new_user)
+                db.session.commit()
+                login_user(new_user)
+                return redirect(url_for('index'))
+        
+        elif action == 'login':
+            user = User.query.filter_by(username=username).first()
+            if user and check_password_hash(user.password_hash, password):
+                login_user(user)
+                return redirect(url_for('index'))
+            else:
+                flash('帳號或密碼錯誤！', 'danger')
+                
+    return render_template('login.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
+
+# ==========================================
+# 首頁與圖表 API 邏輯 (只抓當前登入者的資料)
 # ==========================================
 @app.route('/')
+@login_required
 def index():
-    all_invoices = Invoice.query.order_by(Invoice.id.desc()).all()
+    all_invoices = Invoice.query.filter_by(user_id=current_user.id).order_by(Invoice.id.desc()).all()
+    
     category_totals = db.session.query(
         InvoiceDetail.category,
         func.sum(InvoiceDetail.unit_price * InvoiceDetail.quantity).label('total')
-    ).group_by(InvoiceDetail.category).all()
+    ).join(Invoice).filter(Invoice.user_id == current_user.id).group_by(InvoiceDetail.category).all()
+    
     chart_data = {row.category: row.total for row in category_totals}
-    return render_template('index.html', invoices=all_invoices, chart_data=chart_data)
+    return render_template('index.html', invoices=all_invoices, chart_data=chart_data, current_user=current_user)
+
+@app.route('/api/trend_data')
+@login_required
+def trend_data():
+    invoices = Invoice.query.filter_by(user_id=current_user.id).order_by(Invoice.date).all()
+    trends = {}
+    for inv in invoices:
+        f_date = f"{inv.date[:4]}/{inv.date[4:6]}/{inv.date[6:]}"
+        trends[f_date] = trends.get(f_date, 0) + inv.total_amount
+        
+    return jsonify({"dates": list(trends.keys()), "amounts": list(trends.values())})
 
 # ==========================================
-# 核心 API 1：模擬載具同步 (維持不變)
+# 核心 API (全部綁定 current_user.id)
 # ==========================================
 @app.route('/api/sync_mock', methods=['GET'])
+@login_required
 def sync_mock_data():
     letters = ''.join(random.choices(string.ascii_uppercase, k=2))
     numbers = ''.join(random.choices(string.digits, k=8))
@@ -63,9 +138,13 @@ def sync_mock_data():
     ]
     purchased_items = random.sample(item_pool, k=random.randint(1, 2))
     total_amount = sum(item['unit_price'] for item in purchased_items)
+    
+    # 產生稍微不同的日期，讓折線圖有高低起伏
+    mock_date = f"202606{random.randint(1,9):02d}"
 
     new_invoice = Invoice(
-        inv_num=random_inv_num, date="20260603", seller_name="系統模擬商家", total_amount=total_amount
+        user_id=current_user.id, inv_num=random_inv_num, date=mock_date, 
+        seller_name="系統模擬商家", total_amount=total_amount
     )
     db.session.add(new_invoice)
     db.session.commit()
@@ -85,19 +164,15 @@ def sync_mock_data():
     db.session.commit() 
     return jsonify({"status": "success", "message": "載具同步成功！"})
 
-# ==========================================
-# 🌟 新增 API 2：接收手動記帳表單
-# ==========================================
 @app.route('/api/add_manual', methods=['POST'])
+@login_required
 def add_manual():
-    data = request.json # 接收網頁傳來的 JSON 資料
-    
-    # 幫手動記帳產生一個專屬的假發票號碼 (MANUAL-開頭)
+    data = request.json
     manual_inv_num = f"MANUAL-{random.randint(10000000, 99999999)}"
     
     new_invoice = Invoice(
-        inv_num=manual_inv_num, date="20260603", 
-        seller_name="手動記帳 (無載具)", total_amount=int(data['amount'])
+        user_id=current_user.id, inv_num=manual_inv_num, date=datetime.now().strftime("%Y%m%d"), 
+        seller_name="手動記帳", total_amount=int(data['amount'])
     )
     db.session.add(new_invoice)
     db.session.commit()
@@ -111,31 +186,26 @@ def add_manual():
     
     return jsonify({"status": "success", "message": "手動記帳成功！已加入圓餅圖計算。"})
 
-# ==========================================
-# 🌟 新增 API 3：自動對獎系統
-# ==========================================
 @app.route('/api/check_lottery', methods=['POST'])
+@login_required
 def check_lottery():
     data = request.json
-    winning_number = data.get('winning_number', '') # 取得使用者輸入的中獎號碼
+    winning_number = data.get('winning_number', '')
 
     if len(winning_number) < 3:
         return jsonify({"status": "error", "message": "請至少輸入3碼對獎號碼喔！"})
 
-    invoices = Invoice.query.all()
+    invoices = Invoice.query.filter_by(user_id=current_user.id).all()
     winner_count = 0
 
     for inv in invoices:
-        # 只比對有真實格式的發票 (排除手動記帳的 MANUAL)
         if '-' in inv.inv_num and not inv.inv_num.startswith('MANUAL'):
-            # 取出發票號碼的數字部分 (例如 AB-12345678 取出 12345678)
             num_part = inv.inv_num.split('-')[1]
-            # 如果發票號碼的尾數等於中獎號碼，就是中獎了！
             if num_part.endswith(winning_number):
                 inv.is_winner = True
                 winner_count += 1
             else:
-                inv.is_winner = False # 沒中獎的歸零
+                inv.is_winner = False
 
     db.session.commit()
     
@@ -145,6 +215,4 @@ def check_lottery():
         return jsonify({"status": "success", "message": "幫QQ，這次沒有發票中獎，下次再接再厲！"})
 
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
     app.run(debug=True)
