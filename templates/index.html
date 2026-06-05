@@ -91,10 +91,13 @@
     <div class="row">
         <div class="col-lg-7 mb-4">
             <div class="card h-100">
-                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 fw-bold">🧾 載具發票紀錄</h5>
-                    <button onclick="syncData()" class="btn btn-light btn-sm fw-bold text-primary shadow-sm">🔄 模擬刷載具</button>
-                </div>
+               <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+    <h5 class="mb-0 fw-bold">🧾 載具發票紀錄</h5>
+    <div>
+        <a href="/api/export_csv" class="btn btn-warning btn-sm fw-bold shadow-sm me-2">📥 匯出報表</a>
+        <button onclick="syncData()" class="btn btn-light btn-sm fw-bold text-primary shadow-sm">🔄 模擬刷載具</button>
+    </div>
+</div>
                 <div class="card-body table-container">
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mt-2">

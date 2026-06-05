@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, render_template, request, redirect, url_for, flash
+from flask import Flask, jsonify, render_template, request, redirect, url_for, flash, Response
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import func
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
@@ -6,6 +6,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import random
 import string
 from datetime import datetime
+import csv
+import io
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
@@ -213,6 +215,33 @@ def check_lottery():
         return jsonify({"status": "success", "message": f"🎉 太神啦！共有 {winner_count} 張發票中獎！"})
     else:
         return jsonify({"status": "success", "message": "幫QQ，這次沒有發票中獎，下次再接再厲！"})
-
+# ==========================================
+# 🌟 新增：一鍵匯出 CSV 報表 API
+# ==========================================
+@app.route('/api/export_csv')
+@login_required
+def export_csv():
+    # 撈出登入者的所有發票
+    invoices = Invoice.query.filter_by(user_id=current_user.id).order_by(Invoice.date.desc()).all()
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # 寫入 Excel 的標題列
+    writer.writerow(['發票號碼', '消費日期', '商家名稱', '總金額', '是否中獎'])
+    
+    # 把每一筆資料寫進去
+    for inv in invoices:
+        winner_status = '是' if inv.is_winner else '否'
+        formatted_date = f"{inv.date[:4]}/{inv.date[4:6]}/{inv.date[6:]}" # 格式化日期
+        writer.writerow([inv.inv_num, formatted_date, inv.seller_name, inv.total_amount, winner_status])
+    
+    output.seek(0)
+    # 加上 \ufeff (BOM) 確保 Excel 打開中文不會變亂碼
+    return Response(
+        '\ufeff' + output.getvalue(),
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment;filename=my_expenses.csv"}
+    )
 if __name__ == '__main__':
     app.run(debug=True)
