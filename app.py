@@ -171,7 +171,6 @@ def export_csv():
     output.seek(0)
     return Response('\ufeff' + output.getvalue(), mimetype="text/csv", headers={"Content-Disposition": "attachment;filename=my_expenses.csv"})
 
-# 🌟 大眾化 B2C 升級：逼真的日常消費假資料庫
 @app.route('/api/sync_mock', methods=['GET'])
 @login_required
 def sync_mock_data():
@@ -224,6 +223,49 @@ def add_manual():
     db.session.add(new_detail)
     db.session.commit()
     return jsonify({"status": "success", "message": "手動記帳成功！已同步至儀表板。"})
+
+# ==========================================
+# 🌟 全新 API：刪除與修改帳務功能
+# ==========================================
+@app.route('/api/delete_invoice/<int:inv_id>', methods=['POST'])
+@login_required
+def delete_invoice(inv_id):
+    inv = Invoice.query.get_or_404(inv_id)
+    # 資安防護：確保只能刪除自己的帳
+    if inv.user_id != current_user.id:
+        return jsonify({"status": "error", "message": "無權限執行此操作"}), 403
+    
+    db.session.delete(inv)
+    db.session.commit()
+    return jsonify({"status": "success", "message": "該筆帳務已成功刪除！"})
+
+@app.route('/api/edit_invoice/<int:inv_id>', methods=['POST'])
+@login_required
+def edit_invoice(inv_id):
+    inv = Invoice.query.get_or_404(inv_id)
+    if inv.user_id != current_user.id:
+        return jsonify({"status": "error", "message": "無權限執行此操作"}), 403
+    
+    data = request.json
+    new_name = data.get('item_name')
+    new_amount = int(data.get('amount'))
+
+    inv.total_amount = new_amount
+    
+    # 為了邏輯簡單，修改時將多品項強制合併為一個主品項
+    if inv.details:
+        first_detail = inv.details[0]
+        first_detail.item_name = new_name
+        first_detail.unit_price = new_amount
+        first_detail.quantity = 1
+        for d in inv.details[1:]:
+            db.session.delete(d)
+    else:
+        new_detail = InvoiceDetail(invoice_id=inv.id, item_name=new_name, quantity=1, unit_price=new_amount, category="自訂其他")
+        db.session.add(new_detail)
+
+    db.session.commit()
+    return jsonify({"status": "success", "message": "帳務已成功更新！"})
 
 @app.route('/api/check_lottery', methods=['POST'])
 @login_required

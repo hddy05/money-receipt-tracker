@@ -39,6 +39,8 @@
         [data-bs-theme="dark"] .bg-light { background-color: #2a2a2a !important; border-color: #444 !important;}
         [data-bs-theme="dark"] .form-control, [data-bs-theme="dark"] .form-select { background-color: #2a2a2a; border-color: #444; color: #fff; }
         
+        [data-bs-theme="dark"] .swal2-input { background: #2a2a2a !important; color: #fff !important; border-color: #444 !important; }
+
         .card { border-radius: 16px; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s, border-color 0.3s; }
         .card:hover { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1); }
         [data-bs-theme="dark"] .card:hover { box-shadow: 0 10px 30px rgba(78, 115, 223, 0.15) !important; border-color: #4e73df; }
@@ -230,7 +232,7 @@
                                         <td colspan="3" class="p-0 border-0">
                                             <div class="px-4 py-3 shadow-inner">
                                                 <strong class="small d-block mb-2" style="color: #888;">🛒 消費品項明細：</strong>
-                                                <ul class="list-unstyled mb-0 small">
+                                                <ul class="list-unstyled mb-2 small">
                                                     {% for detail in invoice.details %}
                                                     <li class="d-flex justify-content-between mb-1 border-bottom pb-1" style="border-color: rgba(128,128,128,0.2) !important;">
                                                         <span style="color: #999;">{{ detail.item_name }} <span class="badge bg-secondary text-light ms-1">x {{ detail.quantity }}</span></span>
@@ -240,6 +242,11 @@
                                                     <li>無明細紀錄</li>
                                                     {% endfor %}
                                                 </ul>
+                                                
+                                                <div class="d-flex justify-content-end gap-2 mt-3 pt-2 border-top" style="border-color: rgba(128,128,128,0.1) !important;">
+                                                    <button class="btn btn-sm btn-outline-secondary fw-bold" onclick="editInvoice({{ invoice.id }}, '{{ invoice.details[0].item_name if invoice.details else invoice.seller_name }}', {{ invoice.total_amount }})">✏️ 快速修改</button>
+                                                    <button class="btn btn-sm btn-outline-danger fw-bold" onclick="deleteInvoice({{ invoice.id }})">🗑️ 刪除此筆</button>
+                                                </div>
                                             </div>
                                         </td>
                                     </tr>
@@ -279,7 +286,6 @@
                                 </div>
                             </div>
 
-                            <!-- 🌟 大眾版黃金九宮格 (加入自訂按鈕) -->
                             <div class="mb-4">
                                 <label class="form-label text-muted small fw-bold mb-2">快速分類 <span class="text-danger">*</span></label>
                                 <div class="row g-2 text-center">
@@ -317,7 +323,6 @@
                                     </div>
                                     <div class="col-4">
                                         <input type="radio" class="btn-check" name="manualCategory" id="cat9" value="自訂其他">
-                                        <!-- 自訂類別按鈕，點擊觸發 SweetAlert2 -->
                                         <label class="btn btn-outline-secondary w-100 py-2 border-0 shadow-sm rounded-3" for="cat9" id="label-cat9"><div class="fs-4 mb-1">➕</div><small class="fw-bold">自訂</small></label>
                                     </div>
                                 </div>
@@ -434,7 +439,6 @@
         }
     });
 
-    // 🌟 AI 大腦分析也換成大眾版邏輯
     const rawChartData = {{ chart_data | tojson }};
     const currentTotal = {{ current_month_total }};
     const budgetLimit = {{ monthly_budget }};
@@ -456,6 +460,8 @@
         insightTextEl.innerHTML = report;
     }
 
+    const chartTotalSum = Object.values(rawChartData).reduce((a, b) => a + b, 0);
+
     if (Object.keys(rawChartData).length > 0) {
         new Chart(document.getElementById('expenseChart').getContext('2d'), {
             type: 'doughnut',
@@ -464,10 +470,32 @@
                 datasets: [{ 
                     data: Object.values(rawChartData), 
                     backgroundColor: ['#4e73df', '#1cc88a', '#f6c23e', '#e74a3b', '#858796', '#36b9cc', '#f6c23e', '#e83e8c', '#6f42c1'], 
-                    borderWidth: 2, borderColor: isDarkMode() ? '#1e1e1e' : '#fff', borderRadius: 5, hoverOffset: 6
+                    borderWidth: 2, borderColor: isDarkMode() ? '#1e1e1e' : '#fff', borderRadius: 5, hoverOffset: 22 
                 }] 
             },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, color: isDarkMode() ? '#fff' : '#000', font: { family: 'Noto Sans TC' } } } }, cutout: '75%' }
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                plugins: { 
+                    legend: { position: 'bottom', labels: { boxWidth: 12, color: isDarkMode() ? '#fff' : '#000', font: { family: 'Noto Sans TC' } } },
+                    tooltip: {
+                        enabled: true,
+                        backgroundColor: 'rgba(0, 0, 0, 0.85)',
+                        titleFont: { family: 'Noto Sans TC', size: 13 },
+                        bodyFont: { family: 'Noto Sans TC', size: 14, weight: 'bold' },
+                        padding: 12,
+                        cornerRadius: 10,
+                        callbacks: {
+                            label: function(context) {
+                                const val = context.raw;
+                                const percent = ((val / chartTotalSum) * 100).toFixed(1);
+                                return ` 額度花費: $${val} 元 (${percent}%)`;
+                            }
+                        }
+                    }
+                }, 
+                cutout: '72%' 
+            }
         });
     }
 
@@ -483,16 +511,37 @@
                 labels: trendData.dates, 
                 datasets: [{ 
                     label: '每日支出', data: trendData.amounts, borderColor: '#4e73df', backgroundColor: gradient, 
-                    borderWidth: 3, tension: 0.4, fill: true, pointBackgroundColor: '#4e73df', pointBorderColor: '#fff', pointBorderWidth: 2, pointHoverRadius: 6
+                    borderWidth: 3, tension: 0.4, fill: true, pointBackgroundColor: '#4e73df', pointBorderColor: '#fff', pointBorderWidth: 2, pointHoverRadius: 8, pointRadius: 4
                 }] 
             },
             options: { 
-                responsive: true, maintainAspectRatio: false, 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                interaction: {
+                    intersect: false,
+                    mode: 'index',
+                },
                 scales: { 
                     y: { beginAtZero: true, grid: { color: isDarkMode() ? '#333' : '#f1f5f9' }, ticks: { color: isDarkMode() ? '#aaa' : '#888', font: { family: 'Noto Sans TC' } } }, 
                     x: { grid: { display: false }, ticks: { color: isDarkMode() ? '#aaa' : '#888', font: { family: 'Noto Sans TC' } } } 
                 }, 
-                plugins: { legend: { display: false } } 
+                plugins: { 
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(33, 37, 41, 0.9)',
+                        titleFont: { family: 'Noto Sans TC', size: 12 },
+                        bodyFont: { family: 'Noto Sans TC', size: 15, weight: '900' },
+                        bodyColor: '#f6c23e', 
+                        padding: 12,
+                        cornerRadius: 10,
+                        callbacks: {
+                            // 🌟 這裡已經幫你把 Emoji 拔掉了，只剩下乾淨的文字！
+                            label: function(context) {
+                                return ` 當日開銷: $${context.raw}`;
+                            }
+                        }
+                    }
+                } 
             }
         });
     });
@@ -502,7 +551,6 @@
     document.getElementById('manualName').addEventListener('keypress', function(e) { if(e.key === 'Enter') submitManual(); });
     amountInput.addEventListener('keypress', function(e) { if(e.key === 'Enter') submitManual(); });
 
-    // 🌟 智慧分類預測引擎同步升級為「大眾 8 大分類」
     document.getElementById('manualName').addEventListener('input', function(e) {
         const inputVal = e.target.value;
         const keywordMap = {
@@ -520,7 +568,6 @@
         }
     });
 
-    // 🌟 核心突破：監聽「自訂分類」點擊事件，彈出高質感 SweetAlert2 輸入框
     document.querySelectorAll('input[name="manualCategory"]').forEach(radio => {
         radio.addEventListener('change', async (e) => {
             if (e.target.id === 'cat9') {
@@ -528,31 +575,85 @@
                 const { value: customCat } = await Swal.fire({
                     title: '新增自訂分類',
                     input: 'text',
-                    inputLabel: '請輸入您專屬的分類名稱',
-                    inputPlaceholder: '例如：寵物、保險、進修...',
+                    inputLabel: '請輸入專屬分類名稱',
+                    inputPlaceholder: '例如：寵物、保險...',
                     showCancelButton: true,
-                    confirmButtonText: '確認建立',
+                    confirmButtonText: '確認',
                     cancelButtonText: '取消',
                     background: swalConf.background,
                     color: swalConf.color,
-                    confirmButtonColor: swalConf.confirmButtonColor,
+                    confirmButtonColor: '#4e73df',
                     borderRadius: '16px',
-                    inputValidator: (value) => {
-                        if (!value) { return '分類名稱不能為空喔！'; }
-                    }
+                    inputValidator: (value) => { if (!value) { return '名稱不能為空喔！'; } }
                 });
 
                 if (customCat) {
-                    // 將按鈕標籤直接替換成使用者自訂的字！
                     document.getElementById('label-cat9').innerHTML = `<div class="fs-4 mb-1">🏷️</div><small class="fw-bold">${customCat}</small>`;
                     e.target.value = customCat;
                 } else {
-                    // 如果取消，預設跳回第一格早餐
                     document.getElementById('cat1').checked = true;
                 }
             }
         });
     });
+
+    function deleteInvoice(id) {
+        Swal.fire({
+            ...getSwalConfig('確定要刪除嗎？', '這筆帳務紀錄將永遠消失，無法復原喔！', 'warning'),
+            showCancelButton: true,
+            confirmButtonText: '🗑️ 是的，刪除它！',
+            cancelButtonText: '取消',
+            confirmButtonColor: '#e74a3b'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch(`/api/delete_invoice/${id}`, { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    if(data.status === 'success') {
+                        Swal.fire(getSwalConfig('已刪除！', data.message, 'success')).then(() => location.reload());
+                    }
+                });
+            }
+        });
+    }
+
+    async function editInvoice(id, oldName, oldAmount) {
+        const swalConf = getSwalConfig('快速修改帳務', '', 'info');
+        const { value: formValues } = await Swal.fire({
+            title: '快速修改帳務',
+            html:
+                `<div class="text-start mb-2"><small class="text-muted fw-bold">品項名稱：</small></div>` +
+                `<input id="swal-input-name" class="swal2-input mt-0 mb-3" placeholder="品項名稱" value="${oldName}">` +
+                `<div class="text-start mb-2"><small class="text-muted fw-bold">總金額：</small></div>` +
+                `<input id="swal-input-amt" class="swal2-input mt-0" type="number" placeholder="金額" value="${oldAmount}">`,
+            focusConfirm: false,
+            showCancelButton: true,
+            confirmButtonText: '💾 儲存修改',
+            cancelButtonText: '取消',
+            background: swalConf.background,
+            color: swalConf.color,
+            confirmButtonColor: '#1cc88a',
+            borderRadius: '16px',
+            preConfirm: () => {
+                const name = document.getElementById('swal-input-name').value;
+                const amt = document.getElementById('swal-input-amt').value;
+                if (!name || !amt || amt <= 0) { Swal.showValidationMessage('請輸入有效的名稱與大於 0 的金額！'); }
+                return { name: name, amount: amt };
+            }
+        });
+
+        if (formValues) {
+            fetch(`/api/edit_invoice/${id}`, { 
+                method: 'POST', 
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ item_name: formValues.name, amount: formValues.amount })
+            })
+            .then(res => res.json())
+            .then(data => {
+                Swal.fire(getSwalConfig('更新成功！', data.message, 'success')).then(() => location.reload());
+            });
+        }
+    }
 
     function syncData() { 
         const code = document.getElementById('vehicleCode').value;
