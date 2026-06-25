@@ -104,7 +104,6 @@ def index():
     query = Invoice.query.filter_by(user_id=current_user.id)
     
     if search_kw:
-        # 同時模糊搜尋「商家名稱」或發票明細裡面的「消費品項」
         query = query.outerjoin(InvoiceDetail).filter(
             (Invoice.seller_name.like(f"%{search_kw}%")) |
             (InvoiceDetail.item_name.like(f"%{search_kw}%"))
@@ -216,7 +215,7 @@ def sync_mock_data():
         )
         db.session.add(new_detail)
     db.session.commit() 
-    return jsonify({"status": "success", "message": "雲端載發票資料載入成功！"})
+    return jsonify({"status": "success", "message": "雲端發票資料同步成功！"})
 
 @app.route('/api/add_manual', methods=['POST'])
 @login_required

@@ -267,10 +267,8 @@
 </div>
 
 <script>
-    // 取得當前模式（用於 SweetAlert2 主題配對）
-    function isDarkMode() {
-        return document.documentElement.getAttribute('data-bs-theme') === 'dark';
-    }
+    // 深色模式判斷與 SweetAlert2 主題套用
+    function isDarkMode() { return document.documentElement.getAttribute('data-bs-theme') === 'dark'; }
     function getSwalConfig(title, text, icon) {
         return {
             title: title, text: text, icon: icon,
@@ -280,7 +278,7 @@
         };
     }
 
-    // 深色模式記憶設定
+    // 主題記憶切換
     document.addEventListener('DOMContentLoaded', () => {
         const themeToggleBtn = document.getElementById('themeToggle');
         const themeIcon = document.getElementById('themeIcon');
@@ -289,10 +287,8 @@
         setTheme(savedTheme);
 
         themeToggleBtn.addEventListener('click', () => {
-            const currentTheme = htmlElement.getAttribute('data-bs-theme');
-            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            const newTheme = htmlElement.getAttribute('data-bs-theme') === 'light' ? 'dark' : 'light';
             setTheme(newTheme);
-            // 切換完重新載入圖表以防顏色異常
             setTimeout(() => location.reload(), 150);
         });
 
@@ -309,85 +305,90 @@
         }
     });
 
-    // 🌟 核心新增：智慧財務大腦動態分析邏輯
+    // 智慧財務大腦動態診斷邏輯
     const rawChartData = {{ chart_data | tojson }};
     const currentTotal = {{ current_month_total }};
     const budgetLimit = {{ monthly_budget }};
     const insightTextEl = document.getElementById('aiInsightText');
 
     if (Object.keys(rawChartData).length === 0) {
-        insightTextEl.innerHTML = "💡 <b>大腦提示：</b>目前尚無消費數據，趕快使用「手動記帳」或「雲端載具綁定」錄入第一筆資產開銷吧！";
+        insightTextEl.innerHTML = "💡 <b>大腦提示：</b>目前尚無消費數據，趕快錄入第一筆資產開銷吧！";
     } else {
-        let maxCat = "";
-        let maxAmt = 0;
-        for (const [cat, amt] of Object.entries(rawChartData)) {
-            if (amt > maxAmt) { maxAmt = amt; maxCat = cat; }
-        }
+        let maxCat = "", maxAmt = 0;
+        for (const [cat, amt] of Object.entries(rawChartData)) { if (amt > maxAmt) { maxAmt = amt; maxCat = cat; } }
         
-        let report = "";
-        if (currentTotal >= budgetLimit) {
-            report += "❌ <b>預算嚴重超支警告：</b>本月支出已衝破天際！";
-        } else if (currentTotal >= budgetLimit * 0.8) {
-            report += "⚠️ <b>財務黃金交叉警告：</b>本月核心預算消耗已達 80% 水位。";
-        } else {
-            report += "✅ <b>財務狀況優良：</b>本月資產控制得宜，儲蓄率維持在健康區間。";
-        }
+        let report = currentTotal >= budgetLimit ? "❌ <b>嚴重超支：</b>本月支出衝破天際！" : 
+                     currentTotal >= budgetLimit * 0.8 ? "⚠️ <b>黃金交叉：</b>預算消耗已達 80% 水位。" : 
+                     "✅ <b>狀況優良：</b>資產控制得宜。";
 
-        // 根據花費最高的領域給出人性化決策建議
-        if (maxCat === "數位3C") {
-            report += `目前最大魔王開銷為<b>【${maxCat}】</b>(共計 $${maxAmt})。大腦建議：硬體設備建議採取分期折舊評估，非剛需升級（如顯卡、記憶體）可遞延至下季度，將結餘資金轉投美股大盤 ETF 建立長期複利效應。`;
-        } else if (maxCat === "烘焙開銷") {
-            report += `目前開銷集中在<b>【${maxCat}】</b>(共計 $${maxAmt})。大腦建議：烘焙原料與專業模具屬於技術性投入，建議採取大宗批發採購降低單價，或轉化為微型電商專案創造副業收入。`;
-        } else if (maxCat === "餐飲食品") {
-            report += `目前開銷集中在<b>【${maxCat}】</b>(共計 $${maxAmt})。大腦建議：餐飲開銷屬於高頻非必要耗損，建議多利用各大通路的外送優惠券或買一送一活動進行點餐優化。`;
-        } else {
-            report += `目前主要資金流向為<b>【${maxCat}】</b>(共計 $${maxAmt})。建議持續觀測資產趨勢，保持記帳習慣以精確校準財務自由進度。`;
-        }
+        if (maxCat === "數位3C") report += ` 最大開銷【${maxCat}】($${maxAmt})。建議：硬體升級可評估分期，結餘可轉投美股大盤 ETF 建立長期複利效應。`;
+        else if (maxCat === "烘焙開銷") report += ` 開銷集中【${maxCat}】($${maxAmt})。建議：專業模具與原物料可採大宗批發降低單價，或轉化微型電商創造營收。`;
+        else if (maxCat === "餐飲食品") report += ` 開銷集中【${maxCat}】($${maxAmt})。建議：多利用各大通路電子優惠券或買一送一活動進行點餐優化。`;
+        else report += ` 主要流向【${maxCat}】($${maxAmt})。建議持續觀測資產趨勢，保持記帳習慣以校準財務自由進度。`;
+        
         insightTextEl.innerHTML = report;
     }
 
-    // 圓餅圖
+    // 分類圓餅圖
     if (Object.keys(rawChartData).length > 0) {
-        const ctx = document.getElementById('expenseChart').getContext('2d');
-        new Chart(ctx, {
+        new Chart(document.getElementById('expenseChart').getContext('2d'), {
             type: 'doughnut',
             data: { labels: Object.keys(rawChartData), datasets: [{ data: Object.values(rawChartData), backgroundColor: ['#4e73df', '#1cc88a', '#f6c23e', '#e74a3b', '#858796'], borderWidth: 0 }] },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 }, color: isDarkMode() ? '#fff' : '#000' } } }, cutout: '75%' }
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, color: isDarkMode() ? '#fff' : '#000' } } }, cutout: '75%' }
         });
     }
 
-    // 折線圖
+    // 趨勢折線圖
     fetch('/api/trend_data').then(res => res.json()).then(trendData => {
-        const ctxTrend = document.getElementById('trendChart').getContext('2d');
-        new Chart(ctxTrend, {
+        new Chart(document.getElementById('trendChart').getContext('2d'), {
             type: 'line',
-            data: { labels: trendData.dates, datasets: [{ label: '每日支出 ($)', data: trendData.amounts, borderColor: '#4e73df', backgroundColor: 'rgba(78, 115, 223, 0.05)', borderWidth: 3, tension: 0.3, fill: true, pointBackgroundColor: '#4e73df', pointHoverRadius: 6 }] },
-            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, grid: { color: isDarkMode() ? '#333' : '#f1f5f9', drawBorder: false }, ticks: { color: isDarkMode() ? '#aaa' : '#000' } }, x: { grid: { display: false }, ticks: { color: isDarkMode() ? '#aaa' : '#000' } } }, plugins: { legend: { display: false } } }
+            data: { labels: trendData.dates, datasets: [{ label: '每日支出', data: trendData.amounts, borderColor: '#4e73df', backgroundColor: 'rgba(78, 115, 223, 0.05)', borderWidth: 3, tension: 0.3, fill: true }] },
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, grid: { color: isDarkMode() ? '#333' : '#f1f5f9' }, ticks: { color: isDarkMode() ? '#aaa' : '#000' } }, x: { grid: { display: false }, ticks: { color: isDarkMode() ? '#aaa' : '#000' } } }, plugins: { legend: { display: false } } }
         });
     });
 
-    // 🌟 升級版：利用 SweetAlert2 徹底拔除陽春的 alert() 視窗
+    // ==========================================
+    // 🛡️ 終極防呆機制與智慧預測 JavaScript
+    // ==========================================
+    const amountInput = document.getElementById('manualAmount');
+    
+    // 攔截非法按鍵 (禁止負號、e、E)
+    amountInput.addEventListener('keydown', function(e) {
+        if (e.key === '-' || e.key === 'e' || e.key === 'E') { e.preventDefault(); }
+    });
+
+    // 鍵盤無縫送出 (在金額或備註敲 Enter 直接記帳)
+    document.getElementById('manualName').addEventListener('keypress', function(e) { if(e.key === 'Enter') submitManual(); });
+    amountInput.addEventListener('keypress', function(e) { if(e.key === 'Enter') submitManual(); });
+
+    // 智慧分類預測：輸入關鍵字自動勾選 Emoji 九宮格
+    document.getElementById('manualName').addEventListener('input', function(e) {
+        const inputVal = e.target.value;
+        const keywordMap = {
+            'cat1': ['拿鐵', '便當', '地瓜球', '麥當勞', '肯德基', '星巴克', '50嵐', '炸雞', '飲料', '雞排', '炸雞'],
+            'cat2': ['高鐵', '捷運', '計程車', '停車', '客運', '火車'],
+            'cat3': ['顯示卡', '記憶體', '鍵盤', '滑鼠', '遊戲', 'Steam', 'RTX', 'RAM', '主機板'],
+            'cat4': ['模具', '麵粉', '奶油', '巴斯克', '月餅', '水手牌', '布丁', '起司'],
+            'cat5': ['衣服', '演唱會', '電影', 'Netflix', '購物', '蝦皮']
+        };
+        for (const [catId, keywords] of Object.entries(keywordMap)) {
+            if (keywords.some(kw => inputVal.includes(kw))) {
+                document.getElementById(catId).checked = true;
+                break;
+            }
+        }
+    });
+
+    // ==========================================
+    // API 串接動作 (結合 SweetAlert2 物件偏好)
+    // ==========================================
     function syncData() { 
         const code = document.getElementById('vehicleCode').value;
         if(code && !code.startsWith('/')) {
-            Swal.fire(getSwalConfig('格式錯誤！', '手機條碼開頭必須是「/」喔！', 'error'));
-            return;
+            Swal.fire(getSwalConfig('格式錯誤！', '手機條碼開頭必須是「/」喔！', 'error')); return;
         }
-        
-        // 增加一個科技感的讀取效果
-        Swal.fire({
-            title: '正在連線財政部...',
-            text: '正在穿透加密網域同步雲端載具發票明細',
-            allowOutsideClick: false,
-            didOpen: () => { Swal.showLoading(); }
-        });
-
-        fetch('/api/sync_mock')
-            .then(res => res.json())
-            .then(data => {
-                Swal.fire(getSwalConfig('同步成功！', data.message, 'success'))
-                    .then(() => location.reload());
-            });
+        Swal.fire({ title: '連線中...', text: '正在穿透加密網域同步雲端載具資料', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+        fetch('/api/sync_mock').then(res => res.json()).then(data => { Swal.fire(getSwalConfig('同步成功！', data.message, 'success')).then(() => location.reload()); });
     }
     
     function submitManual() {
@@ -396,37 +397,20 @@
         const name = document.getElementById('manualName').value || category + '消費'; 
         
         if(!amount || amount <= 0) { 
-            Swal.fire(getSwalConfig('提示', '請輸入大於 0 的正確消費金額！', 'warning'));
-            return; 
+            Swal.fire(getSwalConfig('格式錯誤', '請輸入大於 0 的正確消費金額！', 'warning')); return; 
         }
 
-        fetch('/api/add_manual', { 
-            method: 'POST', 
-            headers: {'Content-Type': 'application/json'}, 
-            body: JSON.stringify({ item_name: name, amount: amount, category: category }) 
-        })
-        .then(res => res.json()).then(data => {
-            Swal.fire(getSwalConfig('記帳完成！', data.message, 'success'))
-                .then(() => location.reload());
-        });
+        fetch('/api/add_manual', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ item_name: name, amount: amount, category: category }) })
+        .then(res => res.json()).then(data => { Swal.fire(getSwalConfig('記帳完成！', data.message, 'success')).then(() => location.reload()); });
     }
     
     function checkLottery() {
         const winningNum = document.getElementById('winningNumber').value;
-        if (!winningNum || winningNum.length < 3) {
-            Swal.fire(getSwalConfig('提示', '請至少輸入末 3 碼中獎號碼！', 'warning'));
-            return;
-        }
-
-        fetch('/api/check_lottery', { 
-            method: 'POST', 
-            headers: {'Content-Type': 'application/json'}, 
-            body: JSON.stringify({ winning_number: winningNum }) 
-        })
+        if (!winningNum || winningNum.length < 3) { Swal.fire(getSwalConfig('提示', '請至少輸入末 3 碼中獎號碼！', 'warning')); return; }
+        fetch('/api/check_lottery', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ winning_number: winningNum }) })
         .then(res => res.json()).then(data => {
             const isWinner = data.message.includes('🎉');
-            Swal.fire(getSwalConfig('開獎結果', data.message, isWinner ? 'success' : 'info'))
-                .then(() => location.reload());
+            Swal.fire(getSwalConfig('開獎結果', data.message, isWinner ? 'success' : 'info')).then(() => location.reload());
         });
     }
 </script>
