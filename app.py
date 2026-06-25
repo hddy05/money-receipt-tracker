@@ -93,7 +93,7 @@ def logout():
     return redirect(url_for('login'))
 
 # ==========================================
-# 🌟 首頁與進階搜尋邏輯
+# 首頁與進階穿透搜尋邏輯
 # ==========================================
 @app.route('/')
 @login_required
@@ -104,7 +104,7 @@ def index():
     query = Invoice.query.filter_by(user_id=current_user.id)
     
     if search_kw:
-        # 同時搜尋「商家名稱」或發票明細裡面的「消費品項」
+        # 同時模糊搜尋「商家名稱」或發票明細裡面的「消費品項」
         query = query.outerjoin(InvoiceDetail).filter(
             (Invoice.seller_name.like(f"%{search_kw}%")) |
             (InvoiceDetail.item_name.like(f"%{search_kw}%"))
@@ -171,7 +171,7 @@ def export_csv():
     )
 
 # ==========================================
-# 🌟 核心 API (強化載具資料產生器)
+# 核心 API (逼真的多連鎖商家載具模擬器)
 # ==========================================
 @app.route('/api/sync_mock', methods=['GET'])
 @login_required
@@ -193,7 +193,6 @@ def sync_mock_data():
     
     mock_date = f"202606{random.randint(1,9):02d}"
     
-    # 🌟 讓假資料更加真實，隨機挑選商家
     store_names = ["原價屋 八德店", "全家便利商店", "旺來鄉烘焙材料行", "台灣高鐵", "蝦皮購物", "統一超商"]
     random_seller = random.choice(store_names)
 
@@ -217,7 +216,7 @@ def sync_mock_data():
         )
         db.session.add(new_detail)
     db.session.commit() 
-    return jsonify({"status": "success", "message": "載具同步成功！"})
+    return jsonify({"status": "success", "message": "雲端載發票資料載入成功！"})
 
 @app.route('/api/add_manual', methods=['POST'])
 @login_required
@@ -239,7 +238,7 @@ def add_manual():
     db.session.add(new_detail)
     db.session.commit()
     
-    return jsonify({"status": "success", "message": "手動記帳成功！已加入圓餅圖計算。"})
+    return jsonify({"status": "success", "message": "手動記帳成功！已同步至儀表板。"})
 
 @app.route('/api/check_lottery', methods=['POST'])
 @login_required
@@ -267,7 +266,7 @@ def check_lottery():
     if winner_count > 0:
         return jsonify({"status": "success", "message": f"🎉 太神啦！共有 {winner_count} 張發票中獎！"})
     else:
-        return jsonify({"status": "success", "message": "幫QQ，這次沒有發票中獎，下次再接再厲！"})
+        return jsonify({"status": "success", "message": "這次沒有發票中獎，下次再接再厲！"})
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -7,6 +7,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; transition: background-color 0.3s, color 0.3s; }
         
@@ -74,6 +75,19 @@
                             {{ percent }}%
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-start border-4 border-primary shadow-sm">
+                <div class="card-body py-3">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <h6 class="mb-0 fw-bold text-primary">🧠 智慧財務大腦診斷報告</h6>
+                    </div>
+                    <p id="aiInsightText" class="mb-0 small fw-medium text-secondary">正在分析您的消費數據，請稍候...</p>
                 </div>
             </div>
         </div>
@@ -253,6 +267,19 @@
 </div>
 
 <script>
+    // 取得當前模式（用於 SweetAlert2 主題配對）
+    function isDarkMode() {
+        return document.documentElement.getAttribute('data-bs-theme') === 'dark';
+    }
+    function getSwalConfig(title, text, icon) {
+        return {
+            title: title, text: text, icon: icon,
+            background: isDarkMode() ? '#1e1e1e' : '#fff',
+            color: isDarkMode() ? '#fff' : '#000',
+            confirmButtonColor: '#3085d6'
+        };
+    }
+
     // 深色模式記憶設定
     document.addEventListener('DOMContentLoaded', () => {
         const themeToggleBtn = document.getElementById('themeToggle');
@@ -265,6 +292,8 @@
             const currentTheme = htmlElement.getAttribute('data-bs-theme');
             const newTheme = currentTheme === 'light' ? 'dark' : 'light';
             setTheme(newTheme);
+            // 切換完重新載入圖表以防顏色異常
+            setTimeout(() => location.reload(), 150);
         });
 
         function setTheme(theme) {
@@ -280,14 +309,50 @@
         }
     });
 
-    // 圓餅圖
+    // 🌟 核心新增：智慧財務大腦動態分析邏輯
     const rawChartData = {{ chart_data | tojson }};
+    const currentTotal = {{ current_month_total }};
+    const budgetLimit = {{ monthly_budget }};
+    const insightTextEl = document.getElementById('aiInsightText');
+
+    if (Object.keys(rawChartData).length === 0) {
+        insightTextEl.innerHTML = "💡 <b>大腦提示：</b>目前尚無消費數據，趕快使用「手動記帳」或「雲端載具綁定」錄入第一筆資產開銷吧！";
+    } else {
+        let maxCat = "";
+        let maxAmt = 0;
+        for (const [cat, amt] of Object.entries(rawChartData)) {
+            if (amt > maxAmt) { maxAmt = amt; maxCat = cat; }
+        }
+        
+        let report = "";
+        if (currentTotal >= budgetLimit) {
+            report += "❌ <b>預算嚴重超支警告：</b>本月支出已衝破天際！";
+        } else if (currentTotal >= budgetLimit * 0.8) {
+            report += "⚠️ <b>財務黃金交叉警告：</b>本月核心預算消耗已達 80% 水位。";
+        } else {
+            report += "✅ <b>財務狀況優良：</b>本月資產控制得宜，儲蓄率維持在健康區間。";
+        }
+
+        // 根據花費最高的領域給出人性化決策建議
+        if (maxCat === "數位3C") {
+            report += `目前最大魔王開銷為<b>【${maxCat}】</b>(共計 $${maxAmt})。大腦建議：硬體設備建議採取分期折舊評估，非剛需升級（如顯卡、記憶體）可遞延至下季度，將結餘資金轉投美股大盤 ETF 建立長期複利效應。`;
+        } else if (maxCat === "烘焙開銷") {
+            report += `目前開銷集中在<b>【${maxCat}】</b>(共計 $${maxAmt})。大腦建議：烘焙原料與專業模具屬於技術性投入，建議採取大宗批發採購降低單價，或轉化為微型電商專案創造副業收入。`;
+        } else if (maxCat === "餐飲食品") {
+            report += `目前開銷集中在<b>【${maxCat}】</b>(共計 $${maxAmt})。大腦建議：餐飲開銷屬於高頻非必要耗損，建議多利用各大通路的外送優惠券或買一送一活動進行點餐優化。`;
+        } else {
+            report += `目前主要資金流向為<b>【${maxCat}】</b>(共計 $${maxAmt})。建議持續觀測資產趨勢，保持記帳習慣以精確校準財務自由進度。`;
+        }
+        insightTextEl.innerHTML = report;
+    }
+
+    // 圓餅圖
     if (Object.keys(rawChartData).length > 0) {
         const ctx = document.getElementById('expenseChart').getContext('2d');
         new Chart(ctx, {
             type: 'doughnut',
             data: { labels: Object.keys(rawChartData), datasets: [{ data: Object.values(rawChartData), backgroundColor: ['#4e73df', '#1cc88a', '#f6c23e', '#e74a3b', '#858796'], borderWidth: 0 }] },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } }, cutout: '75%' }
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 }, color: isDarkMode() ? '#fff' : '#000' } } }, cutout: '75%' }
         });
     }
 
@@ -297,18 +362,32 @@
         new Chart(ctxTrend, {
             type: 'line',
             data: { labels: trendData.dates, datasets: [{ label: '每日支出 ($)', data: trendData.amounts, borderColor: '#4e73df', backgroundColor: 'rgba(78, 115, 223, 0.05)', borderWidth: 3, tension: 0.3, fill: true, pointBackgroundColor: '#4e73df', pointHoverRadius: 6 }] },
-            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, grid: { color: '#888', drawBorder: false } }, x: { grid: { display: false } } }, plugins: { legend: { display: false } } }
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, grid: { color: isDarkMode() ? '#333' : '#f1f5f9', drawBorder: false }, ticks: { color: isDarkMode() ? '#aaa' : '#000' } }, x: { grid: { display: false }, ticks: { color: isDarkMode() ? '#aaa' : '#000' } } }, plugins: { legend: { display: false } } }
         });
     });
 
-    // API 呼叫邏輯
+    // 🌟 升級版：利用 SweetAlert2 徹底拔除陽春的 alert() 視窗
     function syncData() { 
         const code = document.getElementById('vehicleCode').value;
         if(code && !code.startsWith('/')) {
-            alert('⚠️ 手機條碼格式錯誤！開頭必須是「/」喔！');
+            Swal.fire(getSwalConfig('格式錯誤！', '手機條碼開頭必須是「/」喔！', 'error'));
             return;
         }
-        fetch('/api/sync_mock').then(() => location.reload()); 
+        
+        // 增加一個科技感的讀取效果
+        Swal.fire({
+            title: '正在連線財政部...',
+            text: '正在穿透加密網域同步雲端載具發票明細',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+
+        fetch('/api/sync_mock')
+            .then(res => res.json())
+            .then(data => {
+                Swal.fire(getSwalConfig('同步成功！', data.message, 'success'))
+                    .then(() => location.reload());
+            });
     }
     
     function submitManual() {
@@ -317,7 +396,7 @@
         const name = document.getElementById('manualName').value || category + '消費'; 
         
         if(!amount || amount <= 0) { 
-            alert('⚠️ 請輸入正確的消費金額！'); 
+            Swal.fire(getSwalConfig('提示', '請輸入大於 0 的正確消費金額！', 'warning'));
             return; 
         }
 
@@ -326,13 +405,29 @@
             headers: {'Content-Type': 'application/json'}, 
             body: JSON.stringify({ item_name: name, amount: amount, category: category }) 
         })
-        .then(res => res.json()).then(data => { alert(data.message); location.reload(); });
+        .then(res => res.json()).then(data => {
+            Swal.fire(getSwalConfig('記帳完成！', data.message, 'success'))
+                .then(() => location.reload());
+        });
     }
     
     function checkLottery() {
         const winningNum = document.getElementById('winningNumber').value;
-        fetch('/api/check_lottery', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ winning_number: winningNum }) })
-        .then(res => res.json()).then(data => { alert(data.message); location.reload(); });
+        if (!winningNum || winningNum.length < 3) {
+            Swal.fire(getSwalConfig('提示', '請至少輸入末 3 碼中獎號碼！', 'warning'));
+            return;
+        }
+
+        fetch('/api/check_lottery', { 
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify({ winning_number: winningNum }) 
+        })
+        .then(res => res.json()).then(data => {
+            const isWinner = data.message.includes('🎉');
+            Swal.fire(getSwalConfig('開獎結果', data.message, isWinner ? 'success' : 'info'))
+                .then(() => location.reload());
+        });
     }
 </script>
 
