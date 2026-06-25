@@ -5,7 +5,7 @@ from flask_login import LoginManager, UserMixin, login_user, login_required, log
 from werkzeug.security import generate_password_hash, check_password_hash
 import random
 import string
-from datetime import datetime, timedelta  # 🌟 核心升級：導入時間差運算核心
+from datetime import datetime, timedelta
 import csv
 import io
 
@@ -15,9 +15,6 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'your_super_secret_key_for_flask'
 db = SQLAlchemy(app)
 
-# ==========================================
-# 登入管理員設定
-# ==========================================
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
@@ -26,9 +23,6 @@ login_manager.login_view = 'login'
 def load_user(user_id):
     return db.session.get(User, int(user_id))
 
-# ==========================================
-# 資料庫模型設計
-# ==========================================
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
@@ -56,9 +50,6 @@ class InvoiceDetail(db.Model):
 with app.app_context():
     db.create_all()
 
-# ==========================================
-# 登入與註冊路由
-# ==========================================
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -75,7 +66,6 @@ def login():
                 db.session.commit()
                 login_user(new_user)
                 return redirect(url_for('index'))
-        
         elif action == 'login':
             user = User.query.filter_by(username=username).first()
             if user and check_password_hash(user.password_hash, password):
@@ -83,7 +73,6 @@ def login():
                 return redirect(url_for('index'))
             else:
                 flash('帳號或密碼錯誤！', 'danger')
-                
     return render_template('login.html')
 
 @app.route('/logout')
@@ -92,28 +81,21 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
-# ==========================================
-# 首頁與全新「雙軌預算＋週過濾」大腦邏輯
-# ==========================================
 @app.route('/')
 @login_required
 def index():
     search_kw = request.args.get('search', '')
     search_month = request.args.get('month', '')
-    week_offset = request.args.get('week_offset', '') # '0'=本週, '1'=上週, '2'=上上週
+    week_offset = request.args.get('week_offset', '') 
     
     query = Invoice.query.filter_by(user_id=current_user.id)
-    
     target_week_text = ""
     
-    # 🌟 核心升級：動態週區塊邊界運算引擎
     if week_offset != "":
         try:
             offset_weeks = int(week_offset)
             today = datetime.now()
-            # 算出當週的星期一
             this_monday = today - timedelta(days=today.weekday())
-            # 根據位移阻尼推算目標週的頭尾
             target_monday = this_monday - timedelta(weeks=offset_weeks)
             target_sunday = target_monday + timedelta(days=6)
             
@@ -125,32 +107,26 @@ def index():
         except ValueError:
             pass
     elif search_month:
-        if len(search_month) == 8: # 精確單日篩選
-            query = query.filter(Invoice.date == search_month)
-        else:
-            query = query.filter(Invoice.date.startswith(search_month))
+        if len(search_month) == 8: query = query.filter(Invoice.date == search_month)
+        else: query = query.filter(Invoice.date.startswith(search_month))
         
     if search_kw:
         query = query.outerjoin(InvoiceDetail).filter(
-            (Invoice.seller_name.like(f"%{search_kw}%")) |
-            (InvoiceDetail.item_name.like(f"%{search_kw}%"))
+            (Invoice.seller_name.like(f"%{search_kw}%")) | (InvoiceDetail.item_name.like(f"%{search_kw}%"))
         ).distinct()
         
     all_invoices = query.order_by(Invoice.id.desc()).all()
     
-    # 讓圓餅圖與折線圖實時對齊當前過濾完的發票明細
     chart_data = {}
     for inv in all_invoices:
         for detail in inv.details:
             chart_data[detail.category] = chart_data.get(detail.category, 0) + (detail.unit_price * detail.quantity)
     
-    # 計算「月」預算進度
     current_month = datetime.now().strftime("%Y%m")
     all_for_budget = Invoice.query.filter_by(user_id=current_user.id).all()
     month_invoices = [inv for inv in all_for_budget if inv.date.startswith(current_month)]
     current_month_total = sum(inv.total_amount for inv in month_invoices)
     
-    # 🌟 計算「指定查看週」的總花費，用來驅動右側進度條
     today = datetime.now()
     this_monday = today - timedelta(days=today.weekday())
     active_offset = 0
@@ -164,20 +140,12 @@ def index():
     current_week_total = sum(inv.total_amount for inv in week_invoices)
     
     monthly_budget = 20000
-    weekly_budget = 5000  # 週預算基準線
+    weekly_budget = 5000
 
-    return render_template('index.html', 
-                           invoices=all_invoices, 
-                           chart_data=chart_data, 
-                           current_user=current_user,
-                           current_month_total=current_month_total,
-                           monthly_budget=monthly_budget,
-                           current_week_total=current_week_total,
-                           weekly_budget=weekly_budget,
-                           search_kw=search_kw,
-                           search_month=search_month,
-                           week_offset=week_offset,
-                           target_week_text=target_week_text)
+    return render_template('index.html', invoices=all_invoices, chart_data=chart_data, current_user=current_user,
+                           current_month_total=current_month_total, monthly_budget=monthly_budget,
+                           current_week_total=current_week_total, weekly_budget=weekly_budget,
+                           search_kw=search_kw, search_month=search_month, week_offset=week_offset, target_week_text=target_week_text)
 
 @app.route('/api/trend_data')
 @login_required
@@ -203,6 +171,7 @@ def export_csv():
     output.seek(0)
     return Response('\ufeff' + output.getvalue(), mimetype="text/csv", headers={"Content-Disposition": "attachment;filename=my_expenses.csv"})
 
+# 🌟 大眾化 B2C 升級：逼真的日常消費假資料庫
 @app.route('/api/sync_mock', methods=['GET'])
 @login_required
 def sync_mock_data():
@@ -211,18 +180,18 @@ def sync_mock_data():
     random_inv_num = f"{letters}-{numbers}"
 
     item_pool = [
-        {"item_name": "RTX 4070 顯示卡", "unit_price": 18990},
-        {"item_name": "16GB DDR5 記憶體", "unit_price": 2990},
-        {"item_name": "水手牌特級強力粉", "unit_price": 150},
-        {"item_name": "六吋巴斯克蛋糕模具", "unit_price": 250},
-        {"item_name": "統一超商 大杯拿鐵", "unit_price": 55},
-        {"item_name": "高鐵單程票", "unit_price": 1490}
+        {"item_name": "星巴克 冰美式", "unit_price": 110},
+        {"item_name": "麥當勞 大麥克套餐", "unit_price": 140},
+        {"item_name": "統一超商 奮起湖便當", "unit_price": 89},
+        {"item_name": "UNIQLO U系列短T", "unit_price": 590},
+        {"item_name": "威秀影城 電影票", "unit_price": 320},
+        {"item_name": "台灣高鐵 單程票", "unit_price": 1490}
     ]
     purchased_items = random.sample(item_pool, k=random.randint(1, 2))
     total_amount = sum(item['unit_price'] for item in purchased_items)
     
     mock_date = f"202606{random.randint(1,9):02d}"
-    store_names = ["原價屋 八德店", "全家便利商店", "旺來鄉烘焙材料行", "台灣高鐵", "蝦皮購物", "統一超商"]
+    store_names = ["統一超商", "全家便利商店", "麥當勞", "台灣高鐵", "威秀影城", "UNIQLO"]
     random_seller = random.choice(store_names)
 
     new_invoice = Invoice(user_id=current_user.id, inv_num=random_inv_num, date=mock_date, seller_name=random_seller, total_amount=total_amount)
@@ -230,11 +199,12 @@ def sync_mock_data():
     db.session.commit()
 
     for item in purchased_items:
-        category = "其他" 
-        if any(kw in item['item_name'] for kw in ["拿鐵", "便當", "茶"]): category = "餐飲食品"
-        elif any(kw in item['item_name'] for kw in ["顯示卡", "記憶體"]): category = "數位3C"
-        elif any(kw in item['item_name'] for kw in ["麵粉", "模具"]): category = "烘焙開銷"
-        elif "高鐵" in item['item_name']: category = "交通運輸"
+        category = "自訂其他" 
+        if any(kw in item['item_name'] for kw in ["星巴克"]): category = "早餐"
+        elif any(kw in item['item_name'] for kw in ["便當", "麥當勞"]): category = "午餐"
+        elif any(kw in item['item_name'] for kw in ["UNIQLO"]): category = "服飾購物"
+        elif any(kw in item['item_name'] for kw in ["電影票"]): category = "休閒娛樂"
+        elif "高鐵" in item['item_name']: category = "交通行車"
 
         new_detail = InvoiceDetail(invoice_id=new_invoice.id, item_name=item['item_name'], quantity=1, unit_price=item['unit_price'], category=category)
         db.session.add(new_detail)

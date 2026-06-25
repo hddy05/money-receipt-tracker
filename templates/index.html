@@ -53,7 +53,6 @@
         .iphone-tabs .nav-item { flex: 1; list-style: none; }
         .iphone-tabs .nav-link { border-radius: 99px; color: #636366; font-weight: 600; font-size: 0.9rem; padding: 8px 0; border: none; background: transparent; text-align: center; display: block; transition: all 0.25s ease; text-decoration: none;}
         .iphone-tabs .nav-link:hover { color: #000; }
-        
         [data-bs-theme="light"] .iphone-tabs .nav-link.active { background-color: #fff; color: #000 !important; box-shadow: 0px 3px 8px rgba(0, 0, 0, 0.12); }
         [data-bs-theme="dark"] .iphone-tabs { background-color: rgba(255, 255, 255, 0.08); }
         [data-bs-theme="dark"] .iphone-tabs .nav-link { color: #a1a1aa; }
@@ -62,20 +61,15 @@
         .flatpickr-calendar { border-radius: 16px !important; box-shadow: 0 12px 36px rgba(0,0,0,0.15) !important; border: none !important; padding: 6px; width: 320px !important;}
         .flatpickr-day { border-radius: 50% !important; font-weight: 500; }
         .flatpickr-day.selected { background: #4e73df !important; border-color: #4e73df !important; font-weight: 900; }
-        
         .flatpickr-current-month { display: flex !important; flex-direction: row-reverse; justify-content: center; align-items: center; padding: 0 !important; width: 100% !important; left: 0 !important; }
         .flatpickr-current-month .numInputWrapper { display: flex !important; flex-direction: row; align-items: center; width: 100px; margin-right: 15px; }
         .flatpickr-current-month .numInputWrapper input.cur-year { order: 2; width: 50px; font-weight: 900; pointer-events: none; padding: 0; margin: 0; color: #fff; }
-        
         .flatpickr-current-month .numInputWrapper span.arrowDown { order: 1; position: static; display: flex !important; opacity: 1 !important; align-items: center; justify-content: center; width: 25px; height: 100%; cursor: pointer; border: none; background: transparent; }
         .flatpickr-current-month .numInputWrapper span.arrowUp { order: 3; position: static; display: flex !important; opacity: 1 !important; align-items: center; justify-content: center; width: 25px; height: 100%; cursor: pointer; border: none; background: transparent; }
-        
         .flatpickr-current-month .numInputWrapper span.arrowDown::after { content: "‹"; border: none; font-size: 26px; position: static; color: rgba(255,255,255,0.7); }
         .flatpickr-current-month .numInputWrapper span.arrowUp::after { content: "›"; border: none; font-size: 26px; position: static; color: rgba(255,255,255,0.7); }
         .flatpickr-current-month .numInputWrapper span.arrowUp:hover::after, .flatpickr-current-month .numInputWrapper span.arrowDown:hover::after { color: #fff; }
-
         .flatpickr-current-month .flatpickr-monthDropdown-months { font-weight: 700; font-size: 1.15rem; appearance: none; text-align: center; background: transparent; color: #fff;}
-        
         [data-bs-theme="dark"] .flatpickr-calendar { background: #1e1e1e !important; color: #fff !important; }
         [data-bs-theme="dark"] .flatpickr-months .flatpickr-month, [data-bs-theme="dark"] .flatpickr-weekday { background: #1e1e1e !important; color: #fff !important; }
         [data-bs-theme="dark"] .flatpickr-day { color: #e0e0e0 !important; }
@@ -106,7 +100,6 @@
             <div class="card shadow-sm border-0">
                 <div class="card-body">
                     <div class="row">
-                        <!-- 月預算 -->
                         <div class="col-md-6 border-end border-light-subtle mb-3 mb-md-0">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <h6 class="mb-0 fw-bold text-dark">🎯 本月預算總額度 ({{ monthly_budget }} 元)</h6>
@@ -122,8 +115,6 @@
                                 </div>
                             </div>
                         </div>
-                        
-                        <!-- 🌟 右側已修正為：預算額度 -->
                         <div class="col-md-6 ps-md-4">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <h6 class="mb-0 fw-bold text-dark">
@@ -147,7 +138,6 @@
         </div>
     </div>
 
-    <!-- 智慧財務大腦診斷報告 -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="card border-start border-4 border-primary shadow-sm">
@@ -202,7 +192,6 @@
                             <a href="/" class="btn btn-outline-secondary btn-sm fw-bold px-3">清除</a>
                         </form>
 
-                        <!-- 🌟 日期快切排序大逆轉：上上週 -> 上週 -> 本週 -> 全部 -->
                         <div class="iphone-tabs mt-2 shadow-inner">
                             <div class="nav-item"><a href="/?week_offset=2" class="nav-link {% if week_offset == '2' %}active{% endif %}">⏮️ 上上週</a></div>
                             <div class="nav-item"><a href="/?week_offset=1" class="nav-link {% if week_offset == '1' %}active{% endif %}">⏮️ 上週</a></div>
@@ -290,39 +279,53 @@
                                 </div>
                             </div>
 
+                            <!-- 🌟 大眾版黃金九宮格 (加入自訂按鈕) -->
                             <div class="mb-4">
                                 <label class="form-label text-muted small fw-bold mb-2">快速分類 <span class="text-danger">*</span></label>
                                 <div class="row g-2 text-center">
                                     <div class="col-4">
-                                        <input type="radio" class="btn-check" name="manualCategory" id="cat1" value="餐飲食品" checked>
-                                        <label class="btn btn-outline-secondary w-100 py-2 border-0 shadow-sm rounded-3" for="cat1"><div class="fs-4 mb-1">🍔</div><small class="fw-bold">餐飲</small></label>
+                                        <input type="radio" class="btn-check" name="manualCategory" id="cat1" value="早餐" checked>
+                                        <label class="btn btn-outline-secondary w-100 py-2 border-0 shadow-sm rounded-3" for="cat1"><div class="fs-4 mb-1">🥪</div><small class="fw-bold">早餐</small></label>
                                     </div>
                                     <div class="col-4">
-                                        <input type="radio" class="btn-check" name="manualCategory" id="cat2" value="交通運輸">
-                                        <label class="btn btn-outline-secondary w-100 py-2 border-0 shadow-sm rounded-3" for="cat2"><div class="fs-4 mb-1">🚌</div><small class="fw-bold">交通</small></label>
+                                        <input type="radio" class="btn-check" name="manualCategory" id="cat2" value="午餐">
+                                        <label class="btn btn-outline-secondary w-100 py-2 border-0 shadow-sm rounded-3" for="cat2"><div class="fs-4 mb-1">🍱</div><small class="fw-bold">午餐</small></label>
                                     </div>
                                     <div class="col-4">
-                                        <input type="radio" class="btn-check" name="manualCategory" id="cat3" value="數位3C">
-                                        <label class="btn btn-outline-secondary w-100 py-2 border-0 shadow-sm rounded-3" for="cat3"><div class="fs-4 mb-1">💻</div><small class="fw-bold">3C</small></label>
+                                        <input type="radio" class="btn-check" name="manualCategory" id="cat3" value="晚餐">
+                                        <label class="btn btn-outline-secondary w-100 py-2 border-0 shadow-sm rounded-3" for="cat3"><div class="fs-4 mb-1">🍜</div><small class="fw-bold">晚餐</small></label>
                                     </div>
                                     <div class="col-4">
-                                        <input type="radio" class="btn-check" name="manualCategory" id="cat4" value="烘焙開銷">
-                                        <label class="btn btn-outline-secondary w-100 py-2 border-0 shadow-sm rounded-3" for="cat4"><div class="fs-4 mb-1">🥐</div><small class="fw-bold">烘焙</small></label>
+                                        <input type="radio" class="btn-check" name="manualCategory" id="cat4" value="交通行車">
+                                        <label class="btn btn-outline-secondary w-100 py-2 border-0 shadow-sm rounded-3" for="cat4"><div class="fs-4 mb-1">🚌</div><small class="fw-bold">交通</small></label>
                                     </div>
                                     <div class="col-4">
-                                        <input type="radio" class="btn-check" name="manualCategory" id="cat5" value="購物娛樂">
+                                        <input type="radio" class="btn-check" name="manualCategory" id="cat5" value="服飾購物">
                                         <label class="btn btn-outline-secondary w-100 py-2 border-0 shadow-sm rounded-3" for="cat5"><div class="fs-4 mb-1">🛍️</div><small class="fw-bold">購物</small></label>
                                     </div>
                                     <div class="col-4">
-                                        <input type="radio" class="btn-check" name="manualCategory" id="cat6" value="其他">
-                                        <label class="btn btn-outline-secondary w-100 py-2 border-0 shadow-sm rounded-3" for="cat6"><div class="fs-4 mb-1">📦</div><small class="fw-bold">其他</small></label>
+                                        <input type="radio" class="btn-check" name="manualCategory" id="cat6" value="居住水電">
+                                        <label class="btn btn-outline-secondary w-100 py-2 border-0 shadow-sm rounded-3" for="cat6"><div class="fs-4 mb-1">🏠</div><small class="fw-bold">居住</small></label>
+                                    </div>
+                                    <div class="col-4">
+                                        <input type="radio" class="btn-check" name="manualCategory" id="cat7" value="休閒娛樂">
+                                        <label class="btn btn-outline-secondary w-100 py-2 border-0 shadow-sm rounded-3" for="cat7"><div class="fs-4 mb-1">🎬</div><small class="fw-bold">娛樂</small></label>
+                                    </div>
+                                    <div class="col-4">
+                                        <input type="radio" class="btn-check" name="manualCategory" id="cat8" value="醫療保健">
+                                        <label class="btn btn-outline-secondary w-100 py-2 border-0 shadow-sm rounded-3" for="cat8"><div class="fs-4 mb-1">💊</div><small class="fw-bold">醫療</small></label>
+                                    </div>
+                                    <div class="col-4">
+                                        <input type="radio" class="btn-check" name="manualCategory" id="cat9" value="自訂其他">
+                                        <!-- 自訂類別按鈕，點擊觸發 SweetAlert2 -->
+                                        <label class="btn btn-outline-secondary w-100 py-2 border-0 shadow-sm rounded-3" for="cat9" id="label-cat9"><div class="fs-4 mb-1">➕</div><small class="fw-bold">自訂</small></label>
                                     </div>
                                 </div>
                             </div>
 
                             <div class="mb-4">
                                 <label class="form-label text-muted small fw-bold">品項備註 (選填)</label>
-                                <input type="text" id="manualName" class="form-control bg-light border-0" placeholder="📝 例如：夜市地瓜球...">
+                                <input type="text" id="manualName" class="form-control bg-light border-0" placeholder="📝 例如：星巴克拿鐵、捷運儲值...">
                             </div>
                             <button onclick="submitManual()" class="btn btn-primary w-100 fw-bold shadow-sm py-2 fs-5">儲存紀錄</button>
                         </div>
@@ -363,13 +366,12 @@
 <script>
     let globalSelectedDate = "{{ search_month }}"; 
 
-    // 🌟 修正了這裡的語法錯誤，把 Python 的 # 換回了 JavaScript 的 // 
     if (flatpickr.l10ns && flatpickr.l10ns.zh) {
         flatpickr.l10ns.zh.months.shorthand = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
         flatpickr.l10ns.zh.months.longhand = flatpickr.l10ns.zh.months.shorthand;
         flatpickr.l10ns.zh.weekdays.shorthand = ['日', '一', '二', '三', '四', '五', '六'];
         flatpickr.l10ns.zh.weekdays.longhand = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
-        flatpickr.l10ns.zh.firstDayOfWeek = 1; // 🌟 核心：強制讓日曆從星期一開始排！
+        flatpickr.l10ns.zh.firstDayOfWeek = 1; 
     }
 
     const fp = flatpickr("#monthInput", {
@@ -432,6 +434,7 @@
         }
     });
 
+    // 🌟 AI 大腦分析也換成大眾版邏輯
     const rawChartData = {{ chart_data | tojson }};
     const currentTotal = {{ current_month_total }};
     const budgetLimit = {{ monthly_budget }};
@@ -445,9 +448,10 @@
         let report = currentTotal >= budgetLimit ? "❌ <b>嚴重超支：</b>本月支出衝破天際！" : 
                      currentTotal >= budgetLimit * 0.8 ? "⚠️ <b>黃金交叉：</b>預算消耗已達 80% 水位。" : 
                      "✅ <b>狀況優良：</b>資產控制得宜。";
-        if (maxCat === "數位3C") report += ` 區間最大開銷【${maxCat}】。建議硬體升級可評估分期，結餘轉投美股大盤 ETF。`;
-        else if (maxCat === "烘焙開銷") report += ` 區間集中【${maxCat}】。建議專業模具與原物料採大宗批發。`;
-        else if (maxCat === "餐飲食品") report += ` 區間集中【${maxCat}】。建議多利用各大通路電子優惠券優化開銷。`;
+        
+        if (maxCat === "休閒娛樂" || maxCat === "服飾購物") report += ` 區間最大開銷落在【${maxCat}】。建議控制非必要消費，將結餘轉投 ETF。`;
+        else if (maxCat === "早餐" || maxCat === "午餐" || maxCat === "晚餐") report += ` 集中於【${maxCat}】。建議善用外送平台訂閱制或通路優惠券優化餐飲開銷。`;
+        else if (maxCat === "交通行車") report += ` 集中於【${maxCat}】。可評估購買月票或定期票以降低通勤成本。`;
         else report += ` 主要流向【${maxCat}】。建議持續觀測資產趨勢。`;
         insightTextEl.innerHTML = report;
     }
@@ -459,7 +463,7 @@
                 labels: Object.keys(rawChartData), 
                 datasets: [{ 
                     data: Object.values(rawChartData), 
-                    backgroundColor: ['#4e73df', '#1cc88a', '#f6c23e', '#e74a3b', '#858796'], 
+                    backgroundColor: ['#4e73df', '#1cc88a', '#f6c23e', '#e74a3b', '#858796', '#36b9cc', '#f6c23e', '#e83e8c', '#6f42c1'], 
                     borderWidth: 2, borderColor: isDarkMode() ? '#1e1e1e' : '#fff', borderRadius: 5, hoverOffset: 6
                 }] 
             },
@@ -498,18 +502,56 @@
     document.getElementById('manualName').addEventListener('keypress', function(e) { if(e.key === 'Enter') submitManual(); });
     amountInput.addEventListener('keypress', function(e) { if(e.key === 'Enter') submitManual(); });
 
+    // 🌟 智慧分類預測引擎同步升級為「大眾 8 大分類」
     document.getElementById('manualName').addEventListener('input', function(e) {
         const inputVal = e.target.value;
         const keywordMap = {
-            'cat1': ['拿鐵', '便當', '地瓜球', '麥當勞', '肯德基', '星巴克', '50嵐', '炸雞', '飲料', '雞排'],
-            'cat2': ['高鐵', '捷運', '計程車', '停車', '客運', '火車'],
-            'cat3': ['顯示卡', '記憶體', '鍵盤', '滑鼠', '遊戲', 'Steam', 'RTX', 'RAM', '主機板'],
-            'cat4': ['模具', '麵粉', '奶油', '巴斯克', '月餅', '水手牌', '布丁', '起司'],
-            'cat5': ['衣服', '演唱會', '電影', 'Netflix', '購物', '蝦皮']
+            'cat1': ['早餐', '三明治', '蛋餅', '豆漿', '早午餐', '星巴克'],
+            'cat2': ['午餐', '便當', '自助餐', '麵', '麥當勞'],
+            'cat3': ['晚餐', '火鍋', '牛排', '夜市', '串燒', '居酒屋'],
+            'cat4': ['高鐵', '捷運', '計程車', '停車', '客運', '火車', '加油'],
+            'cat5': ['衣服', '鞋子', '包包', '網購', '蝦皮', 'UNIQLO'],
+            'cat6': ['房租', '水電', '瓦斯', '管理費', '日用品'],
+            'cat7': ['電影', '演唱會', 'Netflix', '遊戲', 'Steam', 'KTV', '展覽'],
+            'cat8': ['看診', '醫藥', '保健食品', '診所', '藥局', '掛號']
         };
         for (const [catId, keywords] of Object.entries(keywordMap)) {
             if (keywords.some(kw => inputVal.includes(kw))) { document.getElementById(catId).checked = true; break; }
         }
+    });
+
+    // 🌟 核心突破：監聽「自訂分類」點擊事件，彈出高質感 SweetAlert2 輸入框
+    document.querySelectorAll('input[name="manualCategory"]').forEach(radio => {
+        radio.addEventListener('change', async (e) => {
+            if (e.target.id === 'cat9') {
+                const swalConf = getSwalConfig('新增自訂分類', '', 'info');
+                const { value: customCat } = await Swal.fire({
+                    title: '新增自訂分類',
+                    input: 'text',
+                    inputLabel: '請輸入您專屬的分類名稱',
+                    inputPlaceholder: '例如：寵物、保險、進修...',
+                    showCancelButton: true,
+                    confirmButtonText: '確認建立',
+                    cancelButtonText: '取消',
+                    background: swalConf.background,
+                    color: swalConf.color,
+                    confirmButtonColor: swalConf.confirmButtonColor,
+                    borderRadius: '16px',
+                    inputValidator: (value) => {
+                        if (!value) { return '分類名稱不能為空喔！'; }
+                    }
+                });
+
+                if (customCat) {
+                    // 將按鈕標籤直接替換成使用者自訂的字！
+                    document.getElementById('label-cat9').innerHTML = `<div class="fs-4 mb-1">🏷️</div><small class="fw-bold">${customCat}</small>`;
+                    e.target.value = customCat;
+                } else {
+                    // 如果取消，預設跳回第一格早餐
+                    document.getElementById('cat1').checked = true;
+                }
+            }
+        });
     });
 
     function syncData() { 
@@ -518,6 +560,7 @@
         Swal.fire({ title: '連線中...', text: '正在同步雲端載具資料', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
         fetch('/api/sync_mock').then(res => res.json()).then(data => { Swal.fire(getSwalConfig('同步成功！', data.message, 'success')).then(() => location.reload()); });
     }
+    
     function submitManual() {
         const amount = amountInput.value;
         const category = document.querySelector('input[name="manualCategory"]:checked').value;
@@ -526,6 +569,7 @@
         fetch('/api/add_manual', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ item_name: name, amount: amount, category: category }) })
         .then(res => res.json()).then(data => { Swal.fire(getSwalConfig('記帳完成！', data.message, 'success')).then(() => location.reload()); });
     }
+    
     function checkLottery() {
         const winningNum = document.getElementById('winningNumber').value;
         if (!winningNum || winningNum.length < 3) { Swal.fire(getSwalConfig('提示', '請輸入末 3 碼中獎號碼！', 'warning')); return; }
