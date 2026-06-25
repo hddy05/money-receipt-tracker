@@ -1,31 +1,37 @@
-# 📊 智慧記帳與載具整合儀表板 (Smart Finance Tracker)
+# 📊 智慧記帳與雲端發票整合儀表板 (Smart Financial Dashboard)
 
-這是一款專為現代數位生活打造的智慧記帳系統，結合了直覺的視覺化 UI、防呆互動設計與進階資料庫查詢功能。本系統拋棄了傳統繁瑣的表單輸入，引入智慧預測與雲端發票綁定概念，實現流暢的個人財務自動化管理。
+這是一款專為現代人打造的**「免手動、全自動化」**個人財務管理 SaaS 系統。
+我們拋棄了傳統記帳軟體繁瑣的表單輸入，導入了「雲端發票綁定」、「智慧財務預測大腦」以及「高互動雙核視覺化儀表板」，讓記帳回歸直覺，用數據驅動你的消費決策。
 
-🔗 **線上 Live Demo:** [點擊這裡體驗](https://invoice-tracker-qqa6.onrender.com)
+![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)
+![Flask](https://img.shields.io/badge/Flask-2.0+-lightgrey.svg)
+![SQLite](https://img.shields.io/badge/Database-SQLite-green.svg)
+![Bootstrap](https://img.shields.io/badge/UI-Bootstrap%205-purple.svg)
+![Chart.js](https://img.shields.io/badge/Chart.js-3D%20Interactive-yellow.svg)
 
-## 🚀 核心亮點功能 (Key Features)
+## 🔥 核心商業級功能 (Core Features)
 
-- **🔐 獨立安全帳戶**：採用密碼雜湊加密 (Hash)，每位使用者的財務資料完全獨立且安全。
-- **🌓 智慧雙主題 (Dark/Light Mode)**：內建無縫切換的深淺色電競質感主題，並利用 `localStorage` 記憶使用者偏好。
-- **🧠 智慧財務大腦與預測**：
-  - **自動分類預測**：輸入「高鐵」或「RTX 4070 顯示卡」等關鍵字，系統將自動選定「交通」或「3C」分類。
-  - **動態診斷報告**：根據當月花費最高的類別與預算消耗比例，即時生成客製化財務建議。
-- **📊 雙核視覺化儀表板**：整合 Chart.js，即時呈現「支出分類圓餅圖」與「消費趨勢折線圖」。
-- **🛒 雲端載具綁定對接**：支援實體條碼槍掃描，可一鍵模擬同步財政部電子發票，並自動生成逼真的連鎖商家消費明細。
-- **🛡️ 終極防呆機制**：嚴格的輸入驗證，阻擋非法數值（負數、字母），並全面導入 SweetAlert2 取代傳統系統彈窗，提供極致的 UX 體驗。
-- **📥 商業級報表匯出**：支援將個人發票明細一鍵匯出為無亂碼的 CSV 檔案，便於後續 Excel 理財規劃。
+### 🧠 1. 智慧財務大腦與雲端整合
+* **一鍵載具同步**：支援實體條碼槍或手動輸入手機條碼（如 `/ABCDEFG`），一鍵模擬串接財政部電子發票，瞬間完成記帳。
+* **AI 分類預測引擎**：自動偵測品項關鍵字（如輸入「高鐵」自動歸類「交通行車」），徹底告別手動選單。
+* **動態財務診斷報告**：系統會自動抓取當月最大開銷類別，並結合預算消耗比例，即時生成客製化的理財建議。
+
+### 📊 2. 雙核視覺化儀表板 (Dual-Core Dashboard)
+* **3D 浮動圓餅圖**：支援懸停（Hover）爆發放大預覽，並即時換算出該品項佔總開銷的「精確百分比 (%)」。
+* **免瞄準折線圖**：導入專業理財軟體（如 TradingView）的 `interaction: 'index'` 模式，無需精準對齊小圓點，滑鼠移入即可自動對齊十字軸並顯示當日精確花費。
+
+### 🗓️ 3. 時間阻尼引擎與雙軌預算監控
+* **動態週/月視角切換**：致敬 iOS 原生設計的「膠囊型切換滑塊」，一鍵無縫切換「本週、上週、上上週」的財務視角。
+* **動態雙軌進度條**：開放使用者自訂「專屬月預算」，系統會自動推算週預算基準線，並在上方顯示紅、黃、綠三色動態警告進度條。
+
+### 🛡️ 4. 極致防呆與資料控制權 (CRUD)
+* **Flatpickr 防呆日曆**：強制封鎖鍵盤非法輸入，搭配蘋果風格圓角日曆，確保時間序列資料的絕對乾淨。
+* **SweetAlert2 互動體驗**：全面取代原生醜陋彈窗。並開放使用者透過高質感對話框「➕自訂專屬分類」、「✏️快速修改帳務」與「🗑️一鍵刪除」。
+* **無亂碼 CSV 報表匯出**：內建 UTF-8 BOM 處理，一鍵下載發票紀錄，完美串接 Excel 進行後續財務規劃。
 
 ## 🛠️ 技術棧 (Tech Stack)
-
-- **後端 (Backend):** Python 3, Flask, Flask-Login, Werkzeug
-- **資料庫 (Database):** SQLite (透過 SQLAlchemy ORM 進行關聯管理與進階查詢)
-- **前端 (Frontend):** HTML5, CSS3, Bootstrap 5.3, JavaScript (ES6)
-- **資料視覺化 & 互動:** Chart.js, SweetAlert2
-- **部署 (Deployment):** Render CI/CD
-
-## 💻 本地端運行指南 (Local Setup)
-
-1. 複製此專案到本地端：
-   ```bash
-   git clone [你的 GitHub Repo 網址]
+* **Backend**: Python, Flask, SQLAlchemy, SQLite
+* **Frontend**: HTML5, CSS3, Bootstrap 5.3, JavaScript (ES6)
+* **Libraries**: Chart.js, SweetAlert2, Flatpickr
+* **Security**: Werkzeug Security (Hash Encryption), LocalStorage Theme Memory
+* **Deployment**: Render CI/CD 雲端部署

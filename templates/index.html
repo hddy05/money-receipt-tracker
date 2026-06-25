@@ -104,7 +104,10 @@
                     <div class="row">
                         <div class="col-md-6 border-end border-light-subtle mb-3 mb-md-0">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h6 class="mb-0 fw-bold text-dark">🎯 本月預算總額度 ({{ monthly_budget }} 元)</h6>
+                                <h6 class="mb-0 fw-bold text-dark d-flex align-items-center">
+                                    🎯 本月預算總額度 ({{ monthly_budget }} 元)
+                                    <button class="btn btn-sm btn-primary ms-3 shadow-sm px-3" onclick="setBudget()" title="調整預算">✏️ 修改預算</button>
+                                </h6>
                                 <span class="fw-bold {% if current_month_total >= monthly_budget %}text-danger{% elif current_month_total >= monthly_budget * 0.8 %}text-warning{% else %}text-success{% endif %}">
                                     當月已花: ${{ current_month_total }}
                                 </span>
@@ -173,7 +176,6 @@
     </div>
 
     <div class="row">
-        <!-- 左側：發票歷史清單與穿透搜尋 -->
         <div class="col-md-7 mb-4">
             <div class="card h-100">
                 <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
@@ -261,7 +263,6 @@
             </div>
         </div>
 
-        <!-- 右側：雙分頁輸入卡片 -->
         <div class="col-md-5">
             <div class="card mb-4 shadow-sm border-0">
                 <div class="card-body p-4">
@@ -276,13 +277,22 @@
                     </ul>
 
                     <div class="tab-content">
-                        <!-- 模式一：手動記帳 -->
                         <div class="tab-pane fade show active" id="manual-pane" role="tabpanel">
-                            <div class="mb-4">
-                                <label class="form-label text-muted small fw-bold">消費金額 <span class="text-danger">*</span></label>
-                                <div class="input-group input-group-lg shadow-sm">
-                                    <span class="input-group-text bg-white border-end-0 fw-bold text-muted">$</span>
-                                    <input type="number" id="manualAmount" class="form-control border-start-0 fw-bold text-danger" style="font-size: 1.5rem;" placeholder="0" min="1" required>
+                            
+                            <div class="row mb-4">
+                                <div class="col-6">
+                                    <label class="form-label text-muted small fw-bold">消費金額 <span class="text-danger">*</span></label>
+                                    <div class="input-group input-group-lg shadow-sm">
+                                        <span class="input-group-text bg-white border-end-0 fw-bold text-muted">$</span>
+                                        <input type="number" id="manualAmount" class="form-control border-start-0 fw-bold text-danger" style="font-size: 1.3rem;" placeholder="0" min="1" required>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label text-muted small fw-bold">消費日期 <span class="text-danger">*</span></label>
+                                    <div class="input-group input-group-lg shadow-sm">
+                                        <span class="input-group-text bg-white border-end-0 fw-bold text-muted">📅</span>
+                                        <input type="text" id="manualDate" class="form-control border-start-0 fw-bold text-dark" style="font-size: 1.1rem; cursor: pointer; background-color: #fff;" placeholder="選擇日期" readonly>
+                                    </div>
                                 </div>
                             </div>
 
@@ -335,7 +345,6 @@
                             <button onclick="submitManual()" class="btn btn-primary w-100 fw-bold shadow-sm py-2 fs-5">儲存紀錄</button>
                         </div>
 
-                        <!-- 模式二：載具條碼同步 -->
                         <div class="tab-pane fade" id="sync-pane" role="tabpanel">
                             <div class="text-center mb-3">
                                 <span class="badge bg-primary-subtle text-primary mb-2 px-3 py-2 rounded-pill">財政部電子發票整合中心</span>
@@ -353,7 +362,6 @@
                 </div>
             </div>
 
-            <!-- 發票對獎卡片 -->
             <div class="card border-warning shadow-sm">
                 <div class="card-header bg-warning text-dark"><h5 class="mb-0 fw-bold">🎁 發票對獎系統</h5></div>
                 <div class="card-body">
@@ -392,6 +400,14 @@
                 globalSelectedDate = `${y}${m}${d}`;
             }
         }
+    });
+
+    // 🌟 核心修正：初始化手動記帳區的日曆，預設填入今天
+    const fpManual = flatpickr("#manualDate", {
+        locale: "zh",
+        allowInput: false,
+        dateFormat: "Y-m-d",
+        defaultDate: "today"
     });
 
     document.getElementById('searchForm').addEventListener('submit', function(e) {
@@ -535,7 +551,6 @@
                         padding: 12,
                         cornerRadius: 10,
                         callbacks: {
-                            // 🌟 這裡已經幫你把 Emoji 拔掉了，只剩下乾淨的文字！
                             label: function(context) {
                                 return ` 當日開銷: $${context.raw}`;
                             }
@@ -596,6 +611,38 @@
             }
         });
     });
+
+    async function setBudget() {
+        const swalConf = getSwalConfig('設定本月預算', '', 'info');
+        const { value: newBudget } = await Swal.fire({
+            title: '設定本月預算',
+            input: 'number',
+            inputLabel: '請輸入您每月的總預算金額（週預算將自動推算）',
+            inputValue: {{ monthly_budget }},
+            showCancelButton: true,
+            confirmButtonText: '💾 儲存設定',
+            cancelButtonText: '取消',
+            background: swalConf.background,
+            color: swalConf.color,
+            confirmButtonColor: '#4e73df',
+            borderRadius: '16px',
+            inputValidator: (value) => {
+                if (!value || value <= 0) return '請輸入大於 0 的金額！';
+            }
+        });
+
+        if (newBudget) {
+            fetch('/api/set_budget', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ budget: newBudget })
+            }).then(res => res.json()).then(data => {
+                if(data.status === 'success') {
+                    Swal.fire(getSwalConfig('設定成功！', data.message, 'success')).then(() => location.reload());
+                }
+            });
+        }
+    }
 
     function deleteInvoice(id) {
         Swal.fire({
@@ -662,12 +709,24 @@
         fetch('/api/sync_mock').then(res => res.json()).then(data => { Swal.fire(getSwalConfig('同步成功！', data.message, 'success')).then(() => location.reload()); });
     }
     
+    // 🌟 核心修正：將手動選擇的日期傳給後端
     function submitManual() {
         const amount = amountInput.value;
         const category = document.querySelector('input[name="manualCategory"]:checked').value;
         const name = document.getElementById('manualName').value || category + '消費'; 
+        const dateRaw = document.getElementById('manualDate').value;
+        
         if(!amount || amount <= 0) { Swal.fire(getSwalConfig('格式錯誤', '請輸入大於 0 的金額！', 'warning')); return; }
-        fetch('/api/add_manual', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ item_name: name, amount: amount, category: category }) })
+        if(!dateRaw) { Swal.fire(getSwalConfig('格式錯誤', '請選擇消費日期！', 'warning')); return; }
+        
+        // 將 2026-06-25 轉成後端資料庫要的 20260625
+        const dateStr = dateRaw.replace(/-/g, '');
+
+        fetch('/api/add_manual', { 
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify({ item_name: name, amount: amount, category: category, date: dateStr }) 
+        })
         .then(res => res.json()).then(data => { Swal.fire(getSwalConfig('記帳完成！', data.message, 'success')).then(() => location.reload()); });
     }
     

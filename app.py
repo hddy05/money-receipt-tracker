@@ -27,6 +27,7 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
+    monthly_budget = db.Column(db.Integer, default=20000) 
     invoices = db.relationship('Invoice', backref='owner', lazy=True)
 
 class Invoice(db.Model):
@@ -139,13 +140,24 @@ def index():
     week_invoices = [inv for inv in all_for_budget if t_monday.strftime("%Y%m%d") <= inv.date <= t_sunday.strftime("%Y%m%d")]
     current_week_total = sum(inv.total_amount for inv in week_invoices)
     
-    monthly_budget = 20000
-    weekly_budget = 5000
+    monthly_budget = current_user.monthly_budget if current_user.monthly_budget else 20000
+    weekly_budget = monthly_budget // 4
 
     return render_template('index.html', invoices=all_invoices, chart_data=chart_data, current_user=current_user,
                            current_month_total=current_month_total, monthly_budget=monthly_budget,
                            current_week_total=current_week_total, weekly_budget=weekly_budget,
                            search_kw=search_kw, search_month=search_month, week_offset=week_offset, target_week_text=target_week_text)
+
+@app.route('/api/set_budget', methods=['POST'])
+@login_required
+def set_budget():
+    data = request.json
+    new_budget = data.get('budget')
+    if new_budget and int(new_budget) > 0:
+        current_user.monthly_budget = int(new_budget)
+        db.session.commit()
+        return jsonify({"status": "success", "message": "預算額度已更新！"})
+    return jsonify({"status": "error", "message": "無效的金額！"}), 400
 
 @app.route('/api/trend_data')
 @login_required
@@ -210,12 +222,15 @@ def sync_mock_data():
     db.session.commit() 
     return jsonify({"status": "success", "message": "雲端發票資料同步成功！"})
 
+# 🌟 核心修正：接收前端傳來的自訂日期
 @app.route('/api/add_manual', methods=['POST'])
 @login_required
 def add_manual():
     data = request.json
     manual_inv_num = f"MANUAL-{random.randint(10000000, 99999999)}"
-    new_invoice = Invoice(user_id=current_user.id, inv_num=manual_inv_num, date=datetime.now().strftime("%Y%m%d"), seller_name="手動記帳", total_amount=int(data['amount']))
+    date_str = data.get('date', datetime.now().strftime("%Y%m%d"))
+    
+    new_invoice = Invoice(user_id=current_user.id, inv_num=manual_inv_num, date=date_str, seller_name="手動記帳", total_amount=int(data['amount']))
     db.session.add(new_invoice)
     db.session.commit()
 
@@ -224,14 +239,10 @@ def add_manual():
     db.session.commit()
     return jsonify({"status": "success", "message": "手動記帳成功！已同步至儀表板。"})
 
-# ==========================================
-# 🌟 全新 API：刪除與修改帳務功能
-# ==========================================
 @app.route('/api/delete_invoice/<int:inv_id>', methods=['POST'])
 @login_required
 def delete_invoice(inv_id):
     inv = Invoice.query.get_or_404(inv_id)
-    # 資安防護：確保只能刪除自己的帳
     if inv.user_id != current_user.id:
         return jsonify({"status": "error", "message": "無權限執行此操作"}), 403
     
@@ -251,8 +262,6 @@ def edit_invoice(inv_id):
     new_amount = int(data.get('amount'))
 
     inv.total_amount = new_amount
-    
-    # 為了邏輯簡單，修改時將多品項強制合併為一個主品項
     if inv.details:
         first_detail = inv.details[0]
         first_detail.item_name = new_name
