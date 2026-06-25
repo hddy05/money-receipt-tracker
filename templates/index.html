@@ -44,13 +44,11 @@
         [data-bs-theme="dark"] .card:hover { box-shadow: 0 10px 30px rgba(78, 115, 223, 0.15) !important; border-color: #4e73df; }
         
         .btn { border-radius: 10px; padding: 0.5rem 1.25rem; font-weight: 500; transition: all 0.3s ease; }
-        
         .btn-sm { padding: 0.25rem 0.75rem; border-radius: 8px; }
         .table-container { max-height: 380px; overflow-y: auto; }
         .clickable-row { cursor: pointer; transition: background-color 0.2s; }
         .clickable-row:hover { background-color: rgba(128, 128, 128, 0.1) !important; }
 
-        /* iPhone 原生膠囊型切換滑塊 */
         .iphone-tabs { background-color: rgba(120, 120, 128, 0.12); border-radius: 99px; padding: 4px; display: flex; border: none; text-decoration: none; }
         .iphone-tabs .nav-item { flex: 1; list-style: none; }
         .iphone-tabs .nav-link { border-radius: 99px; color: #636366; font-weight: 600; font-size: 0.9rem; padding: 8px 0; border: none; background: transparent; text-align: center; display: block; transition: all 0.25s ease; text-decoration: none;}
@@ -61,7 +59,6 @@
         [data-bs-theme="dark"] .iphone-tabs .nav-link { color: #a1a1aa; }
         [data-bs-theme="dark"] .iphone-tabs .nav-link.active { background-color: #2a2a2a; color: #fff !important; box-shadow: 0px 3px 8px rgba(0, 0, 0, 0.4); }
 
-        /* Flatpickr 日曆 iOS 終極魔改 */
         .flatpickr-calendar { border-radius: 16px !important; box-shadow: 0 12px 36px rgba(0,0,0,0.15) !important; border: none !important; padding: 6px; width: 320px !important;}
         .flatpickr-day { border-radius: 50% !important; font-weight: 500; }
         .flatpickr-day.selected { background: #4e73df !important; border-color: #4e73df !important; font-weight: 900; }
@@ -109,9 +106,10 @@
             <div class="card shadow-sm border-0">
                 <div class="card-body">
                     <div class="row">
+                        <!-- 月預算 -->
                         <div class="col-md-6 border-end border-light-subtle mb-3 mb-md-0">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h6 class="mb-0 fw-bold text-dark">🎯 本月預算總進度 ({{ monthly_budget }} 元)</h6>
+                                <h6 class="mb-0 fw-bold text-dark">🎯 本月預算總額度 ({{ monthly_budget }} 元)</h6>
                                 <span class="fw-bold {% if current_month_total >= monthly_budget %}text-danger{% elif current_month_total >= monthly_budget * 0.8 %}text-warning{% else %}text-success{% endif %}">
                                     當月已花: ${{ current_month_total }}
                                 </span>
@@ -125,10 +123,11 @@
                             </div>
                         </div>
                         
+                        <!-- 🌟 右側已修正為：預算額度 -->
                         <div class="col-md-6 ps-md-4">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <h6 class="mb-0 fw-bold text-dark">
-                                    📊 {% if week_offset == '' or week_offset == '0' %}本週{% elif week_offset == '1' %}上週{% else %}上上週{% endif %}消費進度 ({{ weekly_budget }} 元)
+                                    📊 {% if week_offset == '' or week_offset == '0' %}本週{% elif week_offset == '1' %}上週{% else %}上上週{% endif %}預算額度 ({{ weekly_budget }} 元)
                                 </h6>
                                 <span class="fw-bold {% if current_week_total >= weekly_budget %}text-danger{% elif current_week_total >= weekly_budget * 0.8 %}text-warning{% else %}text-success{% endif %}">
                                     區間已花: ${{ current_week_total }}
@@ -148,6 +147,7 @@
         </div>
     </div>
 
+    <!-- 智慧財務大腦診斷報告 -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="card border-start border-4 border-primary shadow-sm">
@@ -181,6 +181,7 @@
     </div>
 
     <div class="row">
+        <!-- 左側：發票歷史清單與穿透搜尋 -->
         <div class="col-md-7 mb-4">
             <div class="card h-100">
                 <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
@@ -201,11 +202,12 @@
                             <a href="/" class="btn btn-outline-secondary btn-sm fw-bold px-3">清除</a>
                         </form>
 
+                        <!-- 🌟 日期快切排序大逆轉：上上週 -> 上週 -> 本週 -> 全部 -->
                         <div class="iphone-tabs mt-2 shadow-inner">
-                            <div class="nav-item"><a href="/" class="nav-link {% if week_offset == '' %}active{% endif %}">🌍 全部歷史</a></div>
-                            <div class="nav-item"><a href="/?week_offset=0" class="nav-link {% if week_offset == '0' %}active{% endif %}">📅 本週明細</a></div>
-                            <div class="nav-item"><a href="/?week_offset=1" class="nav-link {% if week_offset == '1' %}active{% endif %}">⏮️ 上週</a></div>
                             <div class="nav-item"><a href="/?week_offset=2" class="nav-link {% if week_offset == '2' %}active{% endif %}">⏮️ 上上週</a></div>
+                            <div class="nav-item"><a href="/?week_offset=1" class="nav-link {% if week_offset == '1' %}active{% endif %}">⏮️ 上週</a></div>
+                            <div class="nav-item"><a href="/?week_offset=0" class="nav-link {% if week_offset == '0' %}active{% endif %}">📅 本週明細</a></div>
+                            <div class="nav-item"><a href="/" class="nav-link {% if week_offset == '' %}active{% endif %}">🌍 全部歷史</a></div>
                         </div>
                         {% if target_week_text %}
                         <div class="text-center mt-2"><span class="badge bg-primary-subtle text-primary fw-bold" style="font-size: 0.8rem;">📅 區間定位：{{ target_week_text }}</span></div>
@@ -263,6 +265,7 @@
             </div>
         </div>
 
+        <!-- 右側：雙分頁輸入卡片 -->
         <div class="col-md-5">
             <div class="card mb-4 shadow-sm border-0">
                 <div class="card-body p-4">
@@ -277,6 +280,7 @@
                     </ul>
 
                     <div class="tab-content">
+                        <!-- 模式一：手動記帳 -->
                         <div class="tab-pane fade show active" id="manual-pane" role="tabpanel">
                             <div class="mb-4">
                                 <label class="form-label text-muted small fw-bold">消費金額 <span class="text-danger">*</span></label>
@@ -323,6 +327,7 @@
                             <button onclick="submitManual()" class="btn btn-primary w-100 fw-bold shadow-sm py-2 fs-5">儲存紀錄</button>
                         </div>
 
+                        <!-- 模式二：載具條碼同步 -->
                         <div class="tab-pane fade" id="sync-pane" role="tabpanel">
                             <div class="text-center mb-3">
                                 <span class="badge bg-primary-subtle text-primary mb-2 px-3 py-2 rounded-pill">財政部電子發票整合中心</span>
@@ -340,6 +345,7 @@
                 </div>
             </div>
 
+            <!-- 發票對獎卡片 -->
             <div class="card border-warning shadow-sm">
                 <div class="card-header bg-warning text-dark"><h5 class="mb-0 fw-bold">🎁 發票對獎系統</h5></div>
                 <div class="card-body">
@@ -357,14 +363,13 @@
 <script>
     let globalSelectedDate = "{{ search_month }}"; 
 
-    // 🌟 升級功能 1：星期一到日全面繁中客製化
+    // 🌟 修正了這裡的語法錯誤，把 Python 的 # 換回了 JavaScript 的 // 
     if (flatpickr.l10ns && flatpickr.l10ns.zh) {
         flatpickr.l10ns.zh.months.shorthand = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
         flatpickr.l10ns.zh.months.longhand = flatpickr.l10ns.zh.months.shorthand;
-        // 將頂部星期標題精修為「一 二 三 四 五 六 日」
         flatpickr.l10ns.zh.weekdays.shorthand = ['日', '一', '二', '三', '四', '五', '六'];
         flatpickr.l10ns.zh.weekdays.longhand = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
-        flatpickr.l10ns.zh.firstDayOfWeek = 1; # 🌟 核心：強制讓日曆從星期一開始排！
+        flatpickr.l10ns.zh.firstDayOfWeek = 1; // 🌟 核心：強制讓日曆從星期一開始排！
     }
 
     const fp = flatpickr("#monthInput", {
