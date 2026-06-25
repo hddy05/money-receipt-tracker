@@ -5,13 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>📊 智慧記帳與載具整合儀表板</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/material_blue.css">
+    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/zh.js"></script>
+
     <style>
-        body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; transition: background-color 0.3s, color 0.3s; }
+        body { font-family: 'Noto Sans TC', system-ui, -apple-system, sans-serif; transition: background-color 0.3s, color 0.3s; }
         
-        /* 淺色與深色模式客製化樣式 */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(136, 136, 136, 0.3); border-radius: 10px; }
+        [data-bs-theme="dark"] ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); }
+
         [data-bs-theme="light"] body { background-color: #f4f7f6; }
         [data-bs-theme="light"] .card { box-shadow: 0 8px 24px rgba(0, 0, 0, 0.03); border: none; }
         [data-bs-theme="light"] .detail-row { background-color: #f8f9fa; }
@@ -27,14 +39,52 @@
         [data-bs-theme="dark"] .bg-light { background-color: #2a2a2a !important; border-color: #444 !important;}
         [data-bs-theme="dark"] .form-control, [data-bs-theme="dark"] .form-select { background-color: #2a2a2a; border-color: #444; color: #fff; }
         
-        .card { border-radius: 16px; transition: transform 0.2s, box-shadow 0.2s; }
-        .card:hover { box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1); }
-        .card-header { border-bottom: none; border-top-left-radius: 16px !important; border-top-right-radius: 16px !important; padding: 1rem 1.25rem; }
-        .btn { border-radius: 10px; padding: 0.5rem 1.25rem; font-weight: 500; }
+        .card { border-radius: 16px; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s, border-color 0.3s; }
+        .card:hover { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1); }
+        [data-bs-theme="dark"] .card:hover { box-shadow: 0 10px 30px rgba(78, 115, 223, 0.15) !important; border-color: #4e73df; }
+        
+        .btn { border-radius: 10px; padding: 0.5rem 1.25rem; font-weight: 500; transition: all 0.3s ease; }
+        
         .btn-sm { padding: 0.25rem 0.75rem; border-radius: 8px; }
         .table-container { max-height: 380px; overflow-y: auto; }
         .clickable-row { cursor: pointer; transition: background-color 0.2s; }
         .clickable-row:hover { background-color: rgba(128, 128, 128, 0.1) !important; }
+
+        /* iPhone 原生膠囊型切換滑塊 */
+        .iphone-tabs { background-color: rgba(120, 120, 128, 0.12); border-radius: 99px; padding: 4px; display: flex; border: none; text-decoration: none; }
+        .iphone-tabs .nav-item { flex: 1; list-style: none; }
+        .iphone-tabs .nav-link { border-radius: 99px; color: #636366; font-weight: 600; font-size: 0.9rem; padding: 8px 0; border: none; background: transparent; text-align: center; display: block; transition: all 0.25s ease; text-decoration: none;}
+        .iphone-tabs .nav-link:hover { color: #000; }
+        
+        [data-bs-theme="light"] .iphone-tabs .nav-link.active { background-color: #fff; color: #000 !important; box-shadow: 0px 3px 8px rgba(0, 0, 0, 0.12); }
+        [data-bs-theme="dark"] .iphone-tabs { background-color: rgba(255, 255, 255, 0.08); }
+        [data-bs-theme="dark"] .iphone-tabs .nav-link { color: #a1a1aa; }
+        [data-bs-theme="dark"] .iphone-tabs .nav-link.active { background-color: #2a2a2a; color: #fff !important; box-shadow: 0px 3px 8px rgba(0, 0, 0, 0.4); }
+
+        /* Flatpickr 日曆 iOS 終極魔改 */
+        .flatpickr-calendar { border-radius: 16px !important; box-shadow: 0 12px 36px rgba(0,0,0,0.15) !important; border: none !important; padding: 6px; width: 320px !important;}
+        .flatpickr-day { border-radius: 50% !important; font-weight: 500; }
+        .flatpickr-day.selected { background: #4e73df !important; border-color: #4e73df !important; font-weight: 900; }
+        
+        .flatpickr-current-month { display: flex !important; flex-direction: row-reverse; justify-content: center; align-items: center; padding: 0 !important; width: 100% !important; left: 0 !important; }
+        .flatpickr-current-month .numInputWrapper { display: flex !important; flex-direction: row; align-items: center; width: 100px; margin-right: 15px; }
+        .flatpickr-current-month .numInputWrapper input.cur-year { order: 2; width: 50px; font-weight: 900; pointer-events: none; padding: 0; margin: 0; color: #fff; }
+        
+        .flatpickr-current-month .numInputWrapper span.arrowDown { order: 1; position: static; display: flex !important; opacity: 1 !important; align-items: center; justify-content: center; width: 25px; height: 100%; cursor: pointer; border: none; background: transparent; }
+        .flatpickr-current-month .numInputWrapper span.arrowUp { order: 3; position: static; display: flex !important; opacity: 1 !important; align-items: center; justify-content: center; width: 25px; height: 100%; cursor: pointer; border: none; background: transparent; }
+        
+        .flatpickr-current-month .numInputWrapper span.arrowDown::after { content: "‹"; border: none; font-size: 26px; position: static; color: rgba(255,255,255,0.7); }
+        .flatpickr-current-month .numInputWrapper span.arrowUp::after { content: "›"; border: none; font-size: 26px; position: static; color: rgba(255,255,255,0.7); }
+        .flatpickr-current-month .numInputWrapper span.arrowUp:hover::after, .flatpickr-current-month .numInputWrapper span.arrowDown:hover::after { color: #fff; }
+
+        .flatpickr-current-month .flatpickr-monthDropdown-months { font-weight: 700; font-size: 1.15rem; appearance: none; text-align: center; background: transparent; color: #fff;}
+        
+        [data-bs-theme="dark"] .flatpickr-calendar { background: #1e1e1e !important; color: #fff !important; }
+        [data-bs-theme="dark"] .flatpickr-months .flatpickr-month, [data-bs-theme="dark"] .flatpickr-weekday { background: #1e1e1e !important; color: #fff !important; }
+        [data-bs-theme="dark"] .flatpickr-day { color: #e0e0e0 !important; }
+        [data-bs-theme="dark"] .flatpickr-current-month .numInputWrapper input.cur-year { color: #fff; }
+        [data-bs-theme="dark"] .flatpickr-monthDropdown-months { background: #1e1e1e !important; color: #fff !important; }
+        [data-bs-theme="dark"] .flatpickr-monthDropdown-months option { color: #000; }
     </style>
 </head>
 <body class="pb-5">
@@ -43,7 +93,7 @@
     <div class="container">
         <span class="navbar-brand fw-bold text-primary">📊 {{ current_user.username }} 的智慧帳本</span>
         <div class="d-flex align-items-center gap-3">
-            <span class="text-muted d-none d-sm-inline">歡迎回來！</span>
+            <span class="text-muted d-none d-sm-inline fw-medium">歡迎回來！</span>
             <button id="themeToggle" class="btn btn-outline-secondary btn-sm fw-bold d-flex align-items-center">
                 <span id="themeIcon">🌙 深色模式</span>
             </button>
@@ -58,21 +108,39 @@
         <div class="col-12">
             <div class="card shadow-sm border-0">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <h6 class="mb-0 fw-bold text-dark">🎯 本月預算上限 ({{ monthly_budget }} 元)</h6>
-                        <span class="fw-bold {% if current_month_total >= monthly_budget %}text-danger{% elif current_month_total >= monthly_budget * 0.8 %}text-warning{% else %}text-success{% endif %}">
-                            本月已花費: ${{ current_month_total }}
-                        </span>
-                    </div>
-                    <div class="progress" style="height: 22px; border-radius: 12px; background-color: #e9ecef;">
-                        {% set percent = (current_month_total / monthly_budget * 100) | round(1) %}
-                        {% if percent > 100 %}{% set percent = 100 %}{% endif %}
-                        <div class="progress-bar progress-bar-striped progress-bar-animated fw-bold
-                            {% if current_month_total >= monthly_budget %}bg-danger
-                            {% elif current_month_total >= monthly_budget * 0.8 %}bg-warning
-                            {% else %}bg-success{% endif %}" 
-                            role="progressbar" style="width: {{ percent }}%" aria-valuenow="{{ percent }}" aria-valuemin="0" aria-valuemax="100">
-                            {{ percent }}%
+                    <div class="row">
+                        <div class="col-md-6 border-end border-light-subtle mb-3 mb-md-0">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="mb-0 fw-bold text-dark">🎯 本月預算總進度 ({{ monthly_budget }} 元)</h6>
+                                <span class="fw-bold {% if current_month_total >= monthly_budget %}text-danger{% elif current_month_total >= monthly_budget * 0.8 %}text-warning{% else %}text-success{% endif %}">
+                                    當月已花: ${{ current_month_total }}
+                                </span>
+                            </div>
+                            <div class="progress" style="height: 18px; border-radius: 12px; background-color: #e9ecef;">
+                                {% set m_percent = (current_month_total / monthly_budget * 100) | round(1) %}
+                                {% if m_percent > 100 %}{% set m_percent = 100 %}{% endif %}
+                                <div class="progress-bar progress-bar-striped progress-bar-animated fw-bold {% if current_month_total >= monthly_budget %}bg-danger{% elif current_month_total >= monthly_budget * 0.8 %}bg-warning{% else %}bg-success{% endif %}" role="progressbar" style="width: {{ m_percent }}%">
+                                    {{ m_percent }}%
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 ps-md-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="mb-0 fw-bold text-dark">
+                                    📊 {% if week_offset == '' or week_offset == '0' %}本週{% elif week_offset == '1' %}上週{% else %}上上週{% endif %}消費進度 ({{ weekly_budget }} 元)
+                                </h6>
+                                <span class="fw-bold {% if current_week_total >= weekly_budget %}text-danger{% elif current_week_total >= weekly_budget * 0.8 %}text-warning{% else %}text-success{% endif %}">
+                                    區間已花: ${{ current_week_total }}
+                                </span>
+                            </div>
+                            <div class="progress" style="height: 18px; border-radius: 12px; background-color: #e9ecef;">
+                                {% set w_percent = (current_week_total / weekly_budget * 100) | round(1) %}
+                                {% if w_percent > 100 %}{% set w_percent = 100 %}{% endif %}
+                                <div class="progress-bar progress-bar-striped progress-bar-animated fw-bold {% if current_week_total >= weekly_budget %}bg-danger{% elif current_week_total >= weekly_budget * 0.8 %}bg-warning{% else %}bg-success{% endif %}" role="progressbar" style="width: {{ w_percent }}%">
+                                    {{ w_percent }}%
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -116,18 +184,34 @@
         <div class="col-md-7 mb-4">
             <div class="card h-100">
                 <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 fw-bold">🧾 發票明細紀錄 (點擊展開)</h5>
+                    <h5 class="mb-0 fw-bold">🧾 發票明細紀錄</h5>
                     <a href="/api/export_csv" class="btn btn-warning btn-sm fw-bold shadow-sm text-dark">📥 匯出報表</a>
                 </div>
                 <div class="card-body p-0">
                     <div class="bg-light p-3 border-bottom">
-                        <form method="GET" action="/" class="d-flex gap-2 w-100 mb-0">
-                            <input type="text" name="search" class="form-control form-control-sm" placeholder="🔍 搜商家或品項 (如:高鐵/顯示卡)" value="{{ search_kw }}">
-                            <input type="text" name="month" class="form-control form-control-sm" placeholder="📅 月份 (如:202606)" value="{{ search_month }}" style="max-width: 120px;">
+                        <form id="searchForm" method="GET" action="/" class="d-flex gap-2 w-100 mb-2 align-items-center">
+                            <input type="text" name="search" class="form-control form-control-sm" placeholder="🔍 搜商家或品項" value="{{ search_kw }}">
+                            
+                            <div class="input-group input-group-sm" style="max-width: 160px;">
+                                <span class="input-group-text bg-white border-end-0">📅</span>
+                                <input type="text" id="monthInput" class="form-control border-start-0 fw-bold" 
+                                       placeholder="選擇指定日期" readonly style="cursor: pointer; background-color: #fff; color: #333;">
+                            </div>
                             <button type="submit" class="btn btn-primary btn-sm fw-bold px-3 shadow-sm">篩選</button>
                             <a href="/" class="btn btn-outline-secondary btn-sm fw-bold px-3">清除</a>
                         </form>
+
+                        <div class="iphone-tabs mt-2 shadow-inner">
+                            <div class="nav-item"><a href="/" class="nav-link {% if week_offset == '' %}active{% endif %}">🌍 全部歷史</a></div>
+                            <div class="nav-item"><a href="/?week_offset=0" class="nav-link {% if week_offset == '0' %}active{% endif %}">📅 本週明細</a></div>
+                            <div class="nav-item"><a href="/?week_offset=1" class="nav-link {% if week_offset == '1' %}active{% endif %}">⏮️ 上週</a></div>
+                            <div class="nav-item"><a href="/?week_offset=2" class="nav-link {% if week_offset == '2' %}active{% endif %}">⏮️ 上上週</a></div>
+                        </div>
+                        {% if target_week_text %}
+                        <div class="text-center mt-2"><span class="badge bg-primary-subtle text-primary fw-bold" style="font-size: 0.8rem;">📅 區間定位：{{ target_week_text }}</span></div>
+                        {% endif %}
                     </div>
+
                     <div class="table-container p-0">
                         <div class="table-responsive">
                             <table class="table align-middle mb-0">
@@ -135,7 +219,7 @@
                                     <tr>
                                         <th class="ps-4">發票號碼</th>
                                         <th>商家名稱</th>
-                                        <th>總金額</th>
+                                        <th>總金額 <span class="badge bg-secondary ms-2 fw-normal" style="font-size: 0.75rem;">💡 點擊展開</span></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -146,7 +230,10 @@
                                             {% if invoice.is_winner %} <span class="badge bg-danger ms-1">中獎! 🎉</span> {% endif %}
                                         </td>
                                         <td class="small">{{ invoice.seller_name }}</td>
-                                        <td class="text-danger fw-bold">${{ invoice.total_amount }}</td>
+                                        <td class="text-danger fw-bold d-flex align-items-center justify-content-between pe-4">
+                                            <span>${{ invoice.total_amount }}</span>
+                                            <span class="text-muted" style="font-size: 0.7rem; opacity: 0.5;">▼</span>
+                                        </td>
                                     </tr>
                                     <tr class="detail-row collapse" id="detail-{{ invoice.id }}">
                                         <td colspan="3" class="p-0 border-0">
@@ -177,77 +264,78 @@
         </div>
 
         <div class="col-md-5">
-            <div class="card mb-4 shadow-sm">
-                <div class="card-header bg-dark text-white p-0">
-                    <ul class="nav nav-tabs card-header-tabs m-0 border-0" id="inputTab" role="tablist">
+            <div class="card mb-4 shadow-sm border-0">
+                <div class="card-body p-4">
+                    
+                    <ul class="nav iphone-tabs mb-4" id="inputTab" role="tablist">
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link active fw-bold text-dark bg-white rounded-top-3 border-0 py-3 px-4" id="manual-tab" data-bs-toggle="tab" data-bs-target="#manual-pane" type="button" role="tab">✍️ 手動記帳</button>
+                            <button class="nav-link active w-100" id="manual-tab" data-bs-toggle="tab" data-bs-target="#manual-pane" type="button" role="tab">✍️ 手動記帳</button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link fw-bold text-white border-0 py-3 px-4" id="sync-tab" data-bs-toggle="tab" data-bs-target="#sync-pane" type="button" role="tab" style="background: transparent;">📱 雲端載具綁定</button>
+                            <button class="nav-link w-100" id="sync-tab" data-bs-toggle="tab" data-bs-target="#sync-pane" type="button" role="tab">📱 雲端綁定</button>
                         </li>
                     </ul>
-                </div>
-                <div class="card-body tab-content p-4">
-                    <div class="tab-pane fade show active" id="manual-pane" role="tabpanel">
-                        <div class="mb-4">
-                            <label class="form-label text-muted small fw-bold">消費金額 <span class="text-danger">*</span></label>
-                            <div class="input-group input-group-lg shadow-sm">
-                                <span class="input-group-text bg-white border-end-0 fw-bold text-muted">$</span>
-                                <input type="number" id="manualAmount" class="form-control border-start-0 fw-bold text-danger" style="font-size: 1.5rem;" placeholder="0" min="1" required>
-                            </div>
-                        </div>
 
-                        <div class="mb-4">
-                            <label class="form-label text-muted small fw-bold mb-2">快速分類 <span class="text-danger">*</span></label>
-                            <div class="row g-2 text-center">
-                                <div class="col-4">
-                                    <input type="radio" class="btn-check" name="manualCategory" id="cat1" value="餐飲食品" checked>
-                                    <label class="btn btn-outline-secondary w-100 py-2 border-0 shadow-sm rounded-3" for="cat1"><div class="fs-4 mb-1">🍔</div><small class="fw-bold">餐飲</small></label>
-                                </div>
-                                <div class="col-4">
-                                    <input type="radio" class="btn-check" name="manualCategory" id="cat2" value="交通運輸">
-                                    <label class="btn btn-outline-secondary w-100 py-2 border-0 shadow-sm rounded-3" for="cat2"><div class="fs-4 mb-1">🚌</div><small class="fw-bold">交通</small></label>
-                                </div>
-                                <div class="col-4">
-                                    <input type="radio" class="btn-check" name="manualCategory" id="cat3" value="數位3C">
-                                    <label class="btn btn-outline-secondary w-100 py-2 border-0 shadow-sm rounded-3" for="cat3"><div class="fs-4 mb-1">💻</div><small class="fw-bold">3C</small></label>
-                                </div>
-                                <div class="col-4">
-                                    <input type="radio" class="btn-check" name="manualCategory" id="cat4" value="烘焙開銷">
-                                    <label class="btn btn-outline-secondary w-100 py-2 border-0 shadow-sm rounded-3" for="cat4"><div class="fs-4 mb-1">🥐</div><small class="fw-bold">烘焙</small></label>
-                                </div>
-                                <div class="col-4">
-                                    <input type="radio" class="btn-check" name="manualCategory" id="cat5" value="購物娛樂">
-                                    <label class="btn btn-outline-secondary w-100 py-2 border-0 shadow-sm rounded-3" for="cat5"><div class="fs-4 mb-1">🛍️</div><small class="fw-bold">購物</small></label>
-                                </div>
-                                <div class="col-4">
-                                    <input type="radio" class="btn-check" name="manualCategory" id="cat6" value="其他">
-                                    <label class="btn btn-outline-secondary w-100 py-2 border-0 shadow-sm rounded-3" for="cat6"><div class="fs-4 mb-1">📦</div><small class="fw-bold">其他</small></label>
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="manual-pane" role="tabpanel">
+                            <div class="mb-4">
+                                <label class="form-label text-muted small fw-bold">消費金額 <span class="text-danger">*</span></label>
+                                <div class="input-group input-group-lg shadow-sm">
+                                    <span class="input-group-text bg-white border-end-0 fw-bold text-muted">$</span>
+                                    <input type="number" id="manualAmount" class="form-control border-start-0 fw-bold text-danger" style="font-size: 1.5rem;" placeholder="0" min="1" required>
                                 </div>
                             </div>
+
+                            <div class="mb-4">
+                                <label class="form-label text-muted small fw-bold mb-2">快速分類 <span class="text-danger">*</span></label>
+                                <div class="row g-2 text-center">
+                                    <div class="col-4">
+                                        <input type="radio" class="btn-check" name="manualCategory" id="cat1" value="餐飲食品" checked>
+                                        <label class="btn btn-outline-secondary w-100 py-2 border-0 shadow-sm rounded-3" for="cat1"><div class="fs-4 mb-1">🍔</div><small class="fw-bold">餐飲</small></label>
+                                    </div>
+                                    <div class="col-4">
+                                        <input type="radio" class="btn-check" name="manualCategory" id="cat2" value="交通運輸">
+                                        <label class="btn btn-outline-secondary w-100 py-2 border-0 shadow-sm rounded-3" for="cat2"><div class="fs-4 mb-1">🚌</div><small class="fw-bold">交通</small></label>
+                                    </div>
+                                    <div class="col-4">
+                                        <input type="radio" class="btn-check" name="manualCategory" id="cat3" value="數位3C">
+                                        <label class="btn btn-outline-secondary w-100 py-2 border-0 shadow-sm rounded-3" for="cat3"><div class="fs-4 mb-1">💻</div><small class="fw-bold">3C</small></label>
+                                    </div>
+                                    <div class="col-4">
+                                        <input type="radio" class="btn-check" name="manualCategory" id="cat4" value="烘焙開銷">
+                                        <label class="btn btn-outline-secondary w-100 py-2 border-0 shadow-sm rounded-3" for="cat4"><div class="fs-4 mb-1">🥐</div><small class="fw-bold">烘焙</small></label>
+                                    </div>
+                                    <div class="col-4">
+                                        <input type="radio" class="btn-check" name="manualCategory" id="cat5" value="購物娛樂">
+                                        <label class="btn btn-outline-secondary w-100 py-2 border-0 shadow-sm rounded-3" for="cat5"><div class="fs-4 mb-1">🛍️</div><small class="fw-bold">購物</small></label>
+                                    </div>
+                                    <div class="col-4">
+                                        <input type="radio" class="btn-check" name="manualCategory" id="cat6" value="其他">
+                                        <label class="btn btn-outline-secondary w-100 py-2 border-0 shadow-sm rounded-3" for="cat6"><div class="fs-4 mb-1">📦</div><small class="fw-bold">其他</small></label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label text-muted small fw-bold">品項備註 (選填)</label>
+                                <input type="text" id="manualName" class="form-control bg-light border-0" placeholder="📝 例如：夜市地瓜球...">
+                            </div>
+                            <button onclick="submitManual()" class="btn btn-primary w-100 fw-bold shadow-sm py-2 fs-5">儲存紀錄</button>
                         </div>
 
-                        <div class="mb-4">
-                            <label class="form-label text-muted small fw-bold">品項備註 (選填)</label>
-                            <input type="text" id="manualName" class="form-control bg-light border-0" placeholder="📝 例如：夜市地瓜球...">
+                        <div class="tab-pane fade" id="sync-pane" role="tabpanel">
+                            <div class="text-center mb-3">
+                                <span class="badge bg-primary-subtle text-primary mb-2 px-3 py-2 rounded-pill">財政部電子發票整合中心</span>
+                                <p class="text-muted small">請點擊下方輸入框並使用「實體條碼槍」掃描手機條碼。</p>
+                            </div>
+                            <div class="mb-4">
+                                <label class="form-label text-muted small fw-bold">手機條碼 (首碼必須為 /)</label>
+                                <input type="text" id="vehicleCode" class="form-control form-control-lg text-center fw-bold" placeholder="/ABCDEFG" style="letter-spacing: 2px;" onkeypress="if(event.keyCode==13) syncData();">
+                            </div>
+                            <button onclick="syncData()" class="btn btn-dark w-100 fw-bold shadow-sm py-2 d-flex justify-content-center align-items-center gap-2">
+                                <span>一鍵同步雲端資料</span>
+                            </button>
                         </div>
-
-                        <button onclick="submitManual()" class="btn btn-primary w-100 fw-bold shadow-sm py-2 fs-5">儲存紀錄</button>
-                    </div>
-
-                    <div class="tab-pane fade" id="sync-pane" role="tabpanel">
-                        <div class="text-center mb-3">
-                            <span class="badge bg-primary-subtle text-primary mb-2 px-3 py-2 rounded-pill">財政部電子發票整合中心</span>
-                            <p class="text-muted small">請點擊下方輸入框並使用「實體條碼槍」掃描手機條碼。</p>
-                        </div>
-                        <div class="mb-4">
-                            <label class="form-label text-muted small fw-bold">手機條碼 (首碼必須為 /)</label>
-                            <input type="text" id="vehicleCode" class="form-control form-control-lg text-center fw-bold" placeholder="/ABCDEFG" style="letter-spacing: 2px;" onkeypress="if(event.keyCode==13) syncData();">
-                        </div>
-                        <button onclick="syncData()" class="btn btn-dark w-100 fw-bold shadow-sm py-2 d-flex justify-content-center align-items-center gap-2">
-                            <span>一鍵同步雲端載具資料</span>
-                        </button>
                     </div>
                 </div>
             </div>
@@ -267,18 +355,52 @@
 </div>
 
 <script>
-    // 深色模式判斷與 SweetAlert2 主題套用
+    let globalSelectedDate = "{{ search_month }}"; 
+
+    // 🌟 升級功能 1：星期一到日全面繁中客製化
+    if (flatpickr.l10ns && flatpickr.l10ns.zh) {
+        flatpickr.l10ns.zh.months.shorthand = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+        flatpickr.l10ns.zh.months.longhand = flatpickr.l10ns.zh.months.shorthand;
+        // 將頂部星期標題精修為「一 二 三 四 五 六 日」
+        flatpickr.l10ns.zh.weekdays.shorthand = ['日', '一', '二', '三', '四', '五', '六'];
+        flatpickr.l10ns.zh.weekdays.longhand = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+        flatpickr.l10ns.zh.firstDayOfWeek = 1; # 🌟 核心：強制讓日曆從星期一開始排！
+    }
+
+    const fp = flatpickr("#monthInput", {
+        locale: "zh",
+        allowInput: false, 
+        dateFormat: "Y-m-d", 
+        defaultDate: globalSelectedDate ? `${globalSelectedDate.substring(0,4)}-${globalSelectedDate.substring(4,6)}-${globalSelectedDate.substring(6,8)}` : null,
+        onChange: function(selectedDates) {
+            if (selectedDates.length > 0) {
+                const y = selectedDates[0].getFullYear();
+                const m = String(selectedDates[0].getMonth() + 1).padStart(2, '0');
+                const d = String(selectedDates[0].getDate()).padStart(2, '0');
+                globalSelectedDate = `${y}${m}${d}`;
+            }
+        }
+    });
+
+    document.getElementById('searchForm').addEventListener('submit', function(e) {
+        if (globalSelectedDate) {
+            const hiddenMonth = document.createElement('input');
+            hiddenMonth.type = 'hidden';
+            hiddenMonth.name = 'month';
+            hiddenMonth.value = globalSelectedDate.replace(/-/g, ''); 
+            this.appendChild(hiddenMonth);
+        }
+    });
+
     function isDarkMode() { return document.documentElement.getAttribute('data-bs-theme') === 'dark'; }
     function getSwalConfig(title, text, icon) {
         return {
             title: title, text: text, icon: icon,
-            background: isDarkMode() ? '#1e1e1e' : '#fff',
-            color: isDarkMode() ? '#fff' : '#000',
-            confirmButtonColor: '#3085d6'
+            background: isDarkMode() ? '#1e1e1e' : '#fff', color: isDarkMode() ? '#fff' : '#000',
+            confirmButtonColor: '#4e73df', borderRadius: '16px'
         };
     }
 
-    // 主題記憶切換
     document.addEventListener('DOMContentLoaded', () => {
         const themeToggleBtn = document.getElementById('themeToggle');
         const themeIcon = document.getElementById('themeIcon');
@@ -305,108 +427,103 @@
         }
     });
 
-    // 智慧財務大腦動態診斷邏輯
     const rawChartData = {{ chart_data | tojson }};
     const currentTotal = {{ current_month_total }};
     const budgetLimit = {{ monthly_budget }};
     const insightTextEl = document.getElementById('aiInsightText');
 
     if (Object.keys(rawChartData).length === 0) {
-        insightTextEl.innerHTML = "💡 <b>大腦提示：</b>目前尚無消費數據，趕快錄入第一筆資產開銷吧！";
+        insightTextEl.innerHTML = "💡 <b>大腦提示：</b>目前區間尚無消費數據。";
     } else {
         let maxCat = "", maxAmt = 0;
         for (const [cat, amt] of Object.entries(rawChartData)) { if (amt > maxAmt) { maxAmt = amt; maxCat = cat; } }
-        
         let report = currentTotal >= budgetLimit ? "❌ <b>嚴重超支：</b>本月支出衝破天際！" : 
                      currentTotal >= budgetLimit * 0.8 ? "⚠️ <b>黃金交叉：</b>預算消耗已達 80% 水位。" : 
                      "✅ <b>狀況優良：</b>資產控制得宜。";
-
-        if (maxCat === "數位3C") report += ` 最大開銷【${maxCat}】($${maxAmt})。建議：硬體升級可評估分期，結餘可轉投美股大盤 ETF 建立長期複利效應。`;
-        else if (maxCat === "烘焙開銷") report += ` 開銷集中【${maxCat}】($${maxAmt})。建議：專業模具與原物料可採大宗批發降低單價，或轉化微型電商創造營收。`;
-        else if (maxCat === "餐飲食品") report += ` 開銷集中【${maxCat}】($${maxAmt})。建議：多利用各大通路電子優惠券或買一送一活動進行點餐優化。`;
-        else report += ` 主要流向【${maxCat}】($${maxAmt})。建議持續觀測資產趨勢，保持記帳習慣以校準財務自由進度。`;
-        
+        if (maxCat === "數位3C") report += ` 區間最大開銷【${maxCat}】。建議硬體升級可評估分期，結餘轉投美股大盤 ETF。`;
+        else if (maxCat === "烘焙開銷") report += ` 區間集中【${maxCat}】。建議專業模具與原物料採大宗批發。`;
+        else if (maxCat === "餐飲食品") report += ` 區間集中【${maxCat}】。建議多利用各大通路電子優惠券優化開銷。`;
+        else report += ` 主要流向【${maxCat}】。建議持續觀測資產趨勢。`;
         insightTextEl.innerHTML = report;
     }
 
-    // 分類圓餅圖
     if (Object.keys(rawChartData).length > 0) {
         new Chart(document.getElementById('expenseChart').getContext('2d'), {
             type: 'doughnut',
-            data: { labels: Object.keys(rawChartData), datasets: [{ data: Object.values(rawChartData), backgroundColor: ['#4e73df', '#1cc88a', '#f6c23e', '#e74a3b', '#858796'], borderWidth: 0 }] },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, color: isDarkMode() ? '#fff' : '#000' } } }, cutout: '75%' }
+            data: { 
+                labels: Object.keys(rawChartData), 
+                datasets: [{ 
+                    data: Object.values(rawChartData), 
+                    backgroundColor: ['#4e73df', '#1cc88a', '#f6c23e', '#e74a3b', '#858796'], 
+                    borderWidth: 2, borderColor: isDarkMode() ? '#1e1e1e' : '#fff', borderRadius: 5, hoverOffset: 6
+                }] 
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, color: isDarkMode() ? '#fff' : '#000', font: { family: 'Noto Sans TC' } } } }, cutout: '75%' }
         });
     }
 
-    // 趨勢折線圖
     fetch('/api/trend_data').then(res => res.json()).then(trendData => {
-        new Chart(document.getElementById('trendChart').getContext('2d'), {
+        const ctxTrend = document.getElementById('trendChart').getContext('2d');
+        let gradient = ctxTrend.createLinearGradient(0, 0, 0, 300);
+        gradient.addColorStop(0, 'rgba(78, 115, 223, 0.4)');
+        gradient.addColorStop(1, 'rgba(78, 115, 223, 0.0)');
+
+        new Chart(ctxTrend, {
             type: 'line',
-            data: { labels: trendData.dates, datasets: [{ label: '每日支出', data: trendData.amounts, borderColor: '#4e73df', backgroundColor: 'rgba(78, 115, 223, 0.05)', borderWidth: 3, tension: 0.3, fill: true }] },
-            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, grid: { color: isDarkMode() ? '#333' : '#f1f5f9' }, ticks: { color: isDarkMode() ? '#aaa' : '#000' } }, x: { grid: { display: false }, ticks: { color: isDarkMode() ? '#aaa' : '#000' } } }, plugins: { legend: { display: false } } }
+            data: { 
+                labels: trendData.dates, 
+                datasets: [{ 
+                    label: '每日支出', data: trendData.amounts, borderColor: '#4e73df', backgroundColor: gradient, 
+                    borderWidth: 3, tension: 0.4, fill: true, pointBackgroundColor: '#4e73df', pointBorderColor: '#fff', pointBorderWidth: 2, pointHoverRadius: 6
+                }] 
+            },
+            options: { 
+                responsive: true, maintainAspectRatio: false, 
+                scales: { 
+                    y: { beginAtZero: true, grid: { color: isDarkMode() ? '#333' : '#f1f5f9' }, ticks: { color: isDarkMode() ? '#aaa' : '#888', font: { family: 'Noto Sans TC' } } }, 
+                    x: { grid: { display: false }, ticks: { color: isDarkMode() ? '#aaa' : '#888', font: { family: 'Noto Sans TC' } } } 
+                }, 
+                plugins: { legend: { display: false } } 
+            }
         });
     });
 
-    // ==========================================
-    // 🛡️ 終極防呆機制與智慧預測 JavaScript
-    // ==========================================
     const amountInput = document.getElementById('manualAmount');
-    
-    // 攔截非法按鍵 (禁止負號、e、E)
-    amountInput.addEventListener('keydown', function(e) {
-        if (e.key === '-' || e.key === 'e' || e.key === 'E') { e.preventDefault(); }
-    });
-
-    // 鍵盤無縫送出 (在金額或備註敲 Enter 直接記帳)
+    amountInput.addEventListener('keydown', function(e) { if (e.key === '-' || e.key === 'e' || e.key === 'E') { e.preventDefault(); } });
     document.getElementById('manualName').addEventListener('keypress', function(e) { if(e.key === 'Enter') submitManual(); });
     amountInput.addEventListener('keypress', function(e) { if(e.key === 'Enter') submitManual(); });
 
-    // 智慧分類預測：輸入關鍵字自動勾選 Emoji 九宮格
     document.getElementById('manualName').addEventListener('input', function(e) {
         const inputVal = e.target.value;
         const keywordMap = {
-            'cat1': ['拿鐵', '便當', '地瓜球', '麥當勞', '肯德基', '星巴克', '50嵐', '炸雞', '飲料', '雞排', '炸雞'],
+            'cat1': ['拿鐵', '便當', '地瓜球', '麥當勞', '肯德基', '星巴克', '50嵐', '炸雞', '飲料', '雞排'],
             'cat2': ['高鐵', '捷運', '計程車', '停車', '客運', '火車'],
             'cat3': ['顯示卡', '記憶體', '鍵盤', '滑鼠', '遊戲', 'Steam', 'RTX', 'RAM', '主機板'],
             'cat4': ['模具', '麵粉', '奶油', '巴斯克', '月餅', '水手牌', '布丁', '起司'],
             'cat5': ['衣服', '演唱會', '電影', 'Netflix', '購物', '蝦皮']
         };
         for (const [catId, keywords] of Object.entries(keywordMap)) {
-            if (keywords.some(kw => inputVal.includes(kw))) {
-                document.getElementById(catId).checked = true;
-                break;
-            }
+            if (keywords.some(kw => inputVal.includes(kw))) { document.getElementById(catId).checked = true; break; }
         }
     });
 
-    // ==========================================
-    // API 串接動作 (結合 SweetAlert2 物件偏好)
-    // ==========================================
     function syncData() { 
         const code = document.getElementById('vehicleCode').value;
-        if(code && !code.startsWith('/')) {
-            Swal.fire(getSwalConfig('格式錯誤！', '手機條碼開頭必須是「/」喔！', 'error')); return;
-        }
-        Swal.fire({ title: '連線中...', text: '正在穿透加密網域同步雲端載具資料', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+        if(code && !code.startsWith('/')) { Swal.fire(getSwalConfig('格式錯誤！', '手機條碼開頭必須是「/」喔！', 'error')); return; }
+        Swal.fire({ title: '連線中...', text: '正在同步雲端載具資料', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
         fetch('/api/sync_mock').then(res => res.json()).then(data => { Swal.fire(getSwalConfig('同步成功！', data.message, 'success')).then(() => location.reload()); });
     }
-    
     function submitManual() {
-        const amount = document.getElementById('manualAmount').value;
+        const amount = amountInput.value;
         const category = document.querySelector('input[name="manualCategory"]:checked').value;
         const name = document.getElementById('manualName').value || category + '消費'; 
-        
-        if(!amount || amount <= 0) { 
-            Swal.fire(getSwalConfig('格式錯誤', '請輸入大於 0 的正確消費金額！', 'warning')); return; 
-        }
-
+        if(!amount || amount <= 0) { Swal.fire(getSwalConfig('格式錯誤', '請輸入大於 0 的金額！', 'warning')); return; }
         fetch('/api/add_manual', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ item_name: name, amount: amount, category: category }) })
         .then(res => res.json()).then(data => { Swal.fire(getSwalConfig('記帳完成！', data.message, 'success')).then(() => location.reload()); });
     }
-    
     function checkLottery() {
         const winningNum = document.getElementById('winningNumber').value;
-        if (!winningNum || winningNum.length < 3) { Swal.fire(getSwalConfig('提示', '請至少輸入末 3 碼中獎號碼！', 'warning')); return; }
+        if (!winningNum || winningNum.length < 3) { Swal.fire(getSwalConfig('提示', '請輸入末 3 碼中獎號碼！', 'warning')); return; }
         fetch('/api/check_lottery', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ winning_number: winningNum }) })
         .then(res => res.json()).then(data => {
             const isWinner = data.message.includes('🎉');
@@ -414,6 +531,5 @@
         });
     }
 </script>
-
 </body>
 </html>

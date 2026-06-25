@@ -5,7 +5,7 @@ from flask_login import LoginManager, UserMixin, login_user, login_required, log
 from werkzeug.security import generate_password_hash, check_password_hash
 import random
 import string
-from datetime import datetime
+from datetime import datetime, timedelta  # 🌟 核心升級：導入時間差運算核心
 import csv
 import io
 
@@ -93,40 +93,78 @@ def logout():
     return redirect(url_for('login'))
 
 # ==========================================
-# 首頁與進階穿透搜尋邏輯
+# 首頁與全新「雙軌預算＋週過濾」大腦邏輯
 # ==========================================
 @app.route('/')
 @login_required
 def index():
     search_kw = request.args.get('search', '')
     search_month = request.args.get('month', '')
+    week_offset = request.args.get('week_offset', '') # '0'=本週, '1'=上週, '2'=上上週
     
     query = Invoice.query.filter_by(user_id=current_user.id)
     
+    target_week_text = ""
+    
+    # 🌟 核心升級：動態週區塊邊界運算引擎
+    if week_offset != "":
+        try:
+            offset_weeks = int(week_offset)
+            today = datetime.now()
+            # 算出當週的星期一
+            this_monday = today - timedelta(days=today.weekday())
+            # 根據位移阻尼推算目標週的頭尾
+            target_monday = this_monday - timedelta(weeks=offset_weeks)
+            target_sunday = target_monday + timedelta(days=6)
+            
+            start_date_str = target_monday.strftime("%Y%m%d")
+            end_date_str = target_sunday.strftime("%Y%m%d")
+            
+            query = query.filter(Invoice.date >= start_date_str, Invoice.date <= end_date_str)
+            target_week_text = f"{target_monday.strftime('%m/%d')} ~ {target_sunday.strftime('%m/%d')}"
+        except ValueError:
+            pass
+    elif search_month:
+        if len(search_month) == 8: # 精確單日篩選
+            query = query.filter(Invoice.date == search_month)
+        else:
+            query = query.filter(Invoice.date.startswith(search_month))
+        
     if search_kw:
         query = query.outerjoin(InvoiceDetail).filter(
             (Invoice.seller_name.like(f"%{search_kw}%")) |
             (InvoiceDetail.item_name.like(f"%{search_kw}%"))
         ).distinct()
         
-    if search_month:
-        query = query.filter(Invoice.date.startswith(search_month))
-        
     all_invoices = query.order_by(Invoice.id.desc()).all()
     
-    category_totals = db.session.query(
-        InvoiceDetail.category,
-        func.sum(InvoiceDetail.unit_price * InvoiceDetail.quantity).label('total')
-    ).join(Invoice).filter(Invoice.user_id == current_user.id).group_by(InvoiceDetail.category).all()
+    # 讓圓餅圖與折線圖實時對齊當前過濾完的發票明細
+    chart_data = {}
+    for inv in all_invoices:
+        for detail in inv.details:
+            chart_data[detail.category] = chart_data.get(detail.category, 0) + (detail.unit_price * detail.quantity)
     
-    chart_data = {row.category: row.total for row in category_totals}
-
+    # 計算「月」預算進度
     current_month = datetime.now().strftime("%Y%m")
     all_for_budget = Invoice.query.filter_by(user_id=current_user.id).all()
     month_invoices = [inv for inv in all_for_budget if inv.date.startswith(current_month)]
     current_month_total = sum(inv.total_amount for inv in month_invoices)
     
+    # 🌟 計算「指定查看週」的總花費，用來驅動右側進度條
+    today = datetime.now()
+    this_monday = today - timedelta(days=today.weekday())
+    active_offset = 0
+    if week_offset != "":
+        try: active_offset = int(week_offset)
+        except ValueError: pass
+        
+    t_monday = this_monday - timedelta(weeks=active_offset)
+    t_sunday = t_monday + timedelta(days=6)
+    week_invoices = [inv for inv in all_for_budget if t_monday.strftime("%Y%m%d") <= inv.date <= t_sunday.strftime("%Y%m%d")]
+    current_week_total = sum(inv.total_amount for inv in week_invoices)
+    
     monthly_budget = 20000
+    weekly_budget = 5000  # 週預算基準線
 
     return render_template('index.html', 
                            invoices=all_invoices, 
@@ -134,8 +172,12 @@ def index():
                            current_user=current_user,
                            current_month_total=current_month_total,
                            monthly_budget=monthly_budget,
+                           current_week_total=current_week_total,
+                           weekly_budget=weekly_budget,
                            search_kw=search_kw,
-                           search_month=search_month)
+                           search_month=search_month,
+                           week_offset=week_offset,
+                           target_week_text=target_week_text)
 
 @app.route('/api/trend_data')
 @login_required
@@ -145,7 +187,6 @@ def trend_data():
     for inv in invoices:
         f_date = f"{inv.date[:4]}/{inv.date[4:6]}/{inv.date[6:]}"
         trends[f_date] = trends.get(f_date, 0) + inv.total_amount
-        
     return jsonify({"dates": list(trends.keys()), "amounts": list(trends.values())})
 
 @app.route('/api/export_csv')
@@ -154,24 +195,14 @@ def export_csv():
     invoices = Invoice.query.filter_by(user_id=current_user.id).order_by(Invoice.date.desc()).all()
     output = io.StringIO()
     writer = csv.writer(output)
-    
     writer.writerow(['發票號碼', '消費日期', '商家名稱', '總金額', '是否中獎'])
-    
     for inv in invoices:
         winner_status = '是' if inv.is_winner else '否'
         formatted_date = f"{inv.date[:4]}/{inv.date[4:6]}/{inv.date[6:]}"
         writer.writerow([inv.inv_num, formatted_date, inv.seller_name, inv.total_amount, winner_status])
-    
     output.seek(0)
-    return Response(
-        '\ufeff' + output.getvalue(),
-        mimetype="text/csv",
-        headers={"Content-Disposition": "attachment;filename=my_expenses.csv"}
-    )
+    return Response('\ufeff' + output.getvalue(), mimetype="text/csv", headers={"Content-Disposition": "attachment;filename=my_expenses.csv"})
 
-# ==========================================
-# 核心 API (逼真的多連鎖商家載具模擬器)
-# ==========================================
 @app.route('/api/sync_mock', methods=['GET'])
 @login_required
 def sync_mock_data():
@@ -191,14 +222,10 @@ def sync_mock_data():
     total_amount = sum(item['unit_price'] for item in purchased_items)
     
     mock_date = f"202606{random.randint(1,9):02d}"
-    
     store_names = ["原價屋 八德店", "全家便利商店", "旺來鄉烘焙材料行", "台灣高鐵", "蝦皮購物", "統一超商"]
     random_seller = random.choice(store_names)
 
-    new_invoice = Invoice(
-        user_id=current_user.id, inv_num=random_inv_num, date=mock_date, 
-        seller_name=random_seller, total_amount=total_amount
-    )
+    new_invoice = Invoice(user_id=current_user.id, inv_num=random_inv_num, date=mock_date, seller_name=random_seller, total_amount=total_amount)
     db.session.add(new_invoice)
     db.session.commit()
 
@@ -209,10 +236,7 @@ def sync_mock_data():
         elif any(kw in item['item_name'] for kw in ["麵粉", "模具"]): category = "烘焙開銷"
         elif "高鐵" in item['item_name']: category = "交通運輸"
 
-        new_detail = InvoiceDetail(
-            invoice_id=new_invoice.id, item_name=item['item_name'],
-            quantity=1, unit_price=item['unit_price'], category=category 
-        )
+        new_detail = InvoiceDetail(invoice_id=new_invoice.id, item_name=item['item_name'], quantity=1, unit_price=item['unit_price'], category=category)
         db.session.add(new_detail)
     db.session.commit() 
     return jsonify({"status": "success", "message": "雲端發票資料同步成功！"})
@@ -222,21 +246,13 @@ def sync_mock_data():
 def add_manual():
     data = request.json
     manual_inv_num = f"MANUAL-{random.randint(10000000, 99999999)}"
-    
-    new_invoice = Invoice(
-        user_id=current_user.id, inv_num=manual_inv_num, date=datetime.now().strftime("%Y%m%d"), 
-        seller_name="手動記帳", total_amount=int(data['amount'])
-    )
+    new_invoice = Invoice(user_id=current_user.id, inv_num=manual_inv_num, date=datetime.now().strftime("%Y%m%d"), seller_name="手動記帳", total_amount=int(data['amount']))
     db.session.add(new_invoice)
     db.session.commit()
 
-    new_detail = InvoiceDetail(
-        invoice_id=new_invoice.id, item_name=data['item_name'],
-        quantity=1, unit_price=int(data['amount']), category=data['category']
-    )
+    new_detail = InvoiceDetail(invoice_id=new_invoice.id, item_name=data['item_name'], quantity=1, unit_price=int(data['amount']), category=data['category'])
     db.session.add(new_detail)
     db.session.commit()
-    
     return jsonify({"status": "success", "message": "手動記帳成功！已同步至儀表板。"})
 
 @app.route('/api/check_lottery', methods=['POST'])
@@ -244,28 +260,19 @@ def add_manual():
 def check_lottery():
     data = request.json
     winning_number = data.get('winning_number', '')
-
-    if len(winning_number) < 3:
-        return jsonify({"status": "error", "message": "請至少輸入3碼對獎號碼喔！"})
-
+    if len(winning_number) < 3: return jsonify({"status": "error", "message": "請至少輸入3碼對獎號碼喔！"})
     invoices = Invoice.query.filter_by(user_id=current_user.id).all()
     winner_count = 0
-
     for inv in invoices:
         if '-' in inv.inv_num and not inv.inv_num.startswith('MANUAL'):
             num_part = inv.inv_num.split('-')[1]
             if num_part.endswith(winning_number):
                 inv.is_winner = True
                 winner_count += 1
-            else:
-                inv.is_winner = False
-
+            else: inv.is_winner = False
     db.session.commit()
-    
-    if winner_count > 0:
-        return jsonify({"status": "success", "message": f"🎉 太神啦！共有 {winner_count} 張發票中獎！"})
-    else:
-        return jsonify({"status": "success", "message": "這次沒有發票中獎，下次再接再厲！"})
+    if winner_count > 0: return jsonify({"status": "success", "message": f"🎉 太神啦！共有 {winner_count} 張發票中獎！"})
+    else: return jsonify({"status": "success", "message": "這次沒有發票中獎，下次再接再厲！"})
 
 if __name__ == '__main__':
     app.run(debug=True)
