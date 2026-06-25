@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-TW" data-bs-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,18 +8,32 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { background-color: #f4f7f6; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-        .card { border: none; border-radius: 16px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.03); transition: transform 0.2s, box-shadow 0.2s; }
-        .card:hover { box-shadow: 0 12px 30px rgba(0, 0, 0, 0.05); }
+        body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; transition: background-color 0.3s, color 0.3s; }
+        
+        /* 淺色與深色模式客製化樣式 */
+        [data-bs-theme="light"] body { background-color: #f4f7f6; }
+        [data-bs-theme="light"] .card { box-shadow: 0 8px 24px rgba(0, 0, 0, 0.03); border: none; }
+        [data-bs-theme="light"] .detail-row { background-color: #f8f9fa; }
+        
+        [data-bs-theme="dark"] body { background-color: #121212; }
+        [data-bs-theme="dark"] .card { background-color: #1e1e1e; border: 1px solid #333; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4); }
+        [data-bs-theme="dark"] .card-header { background-color: #1e1e1e !important; }
+        [data-bs-theme="dark"] .navbar { background-color: #1a1a1a !important; border-bottom: 1px solid #333; }
+        [data-bs-theme="dark"] .table { color: #e0e0e0; }
+        [data-bs-theme="dark"] .table-light { background-color: #2a2a2a; color: #aaa !important; }
+        [data-bs-theme="dark"] .detail-row { background-color: #242424; }
+        [data-bs-theme="dark"] .text-dark { color: #f8f9fa !important; }
+        [data-bs-theme="dark"] .bg-light { background-color: #2a2a2a !important; border-color: #444 !important;}
+        [data-bs-theme="dark"] .form-control, [data-bs-theme="dark"] .form-select { background-color: #2a2a2a; border-color: #444; color: #fff; }
+        
+        .card { border-radius: 16px; transition: transform 0.2s, box-shadow 0.2s; }
+        .card:hover { box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1); }
         .card-header { border-bottom: none; border-top-left-radius: 16px !important; border-top-right-radius: 16px !important; padding: 1rem 1.25rem; }
         .btn { border-radius: 10px; padding: 0.5rem 1.25rem; font-weight: 500; }
         .btn-sm { padding: 0.25rem 0.75rem; border-radius: 8px; }
-        .form-control, .form-select { border-radius: 10px; padding: 0.6rem 1rem; border: 1px solid #e2e8f0; }
-        .form-control:focus, .form-select:focus { box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15); }
         .table-container { max-height: 380px; overflow-y: auto; }
         .clickable-row { cursor: pointer; transition: background-color 0.2s; }
-        .clickable-row:hover { background-color: #e9ecef !important; }
-        .detail-row { background-color: #f8f9fa; }
+        .clickable-row:hover { background-color: rgba(128, 128, 128, 0.1) !important; }
     </style>
 </head>
 <body class="pb-5">
@@ -27,8 +41,11 @@
 <nav class="navbar navbar-expand-lg navbar-light bg-white mb-4 shadow-sm sticky-top">
     <div class="container">
         <span class="navbar-brand fw-bold text-primary">📊 {{ current_user.username }} 的智慧帳本</span>
-        <div class="d-flex align-items-center">
-            <span class="text-muted me-3 d-none d-sm-inline">歡迎回來，今天記帳了嗎？</span>
+        <div class="d-flex align-items-center gap-3">
+            <span class="text-muted d-none d-sm-inline">歡迎回來！</span>
+            <button id="themeToggle" class="btn btn-outline-secondary btn-sm fw-bold d-flex align-items-center">
+                <span id="themeIcon">🌙 深色模式</span>
+            </button>
             <a href="/logout" class="btn btn-sm btn-outline-danger fw-bold">🚪 登出系統</a>
         </div>
     </div>
@@ -65,7 +82,7 @@
     <div class="row mb-4">
         <div class="col-md-5 mb-4">
             <div class="card h-100">
-                <div class="card-header bg-white border-0 pt-4"><h5 class="fw-bold text-dark mb-0">💰 支出分類佔比</h5></div>
+                <div class="card-header border-0 pt-4"><h5 class="fw-bold text-dark mb-0">💰 支出分類佔比</h5></div>
                 <div class="card-body d-flex justify-content-center align-items-center" style="min-height: 280px;">
                     <canvas id="expenseChart" style="max-width: 260px; max-height: 260px;"></canvas>
                 </div>
@@ -73,7 +90,7 @@
         </div>
         <div class="col-md-7 mb-4">
             <div class="card h-100">
-                <div class="card-header bg-white border-0 pt-4"><h5 class="fw-bold text-dark mb-0">📈 近期消費趨勢</h5></div>
+                <div class="card-header border-0 pt-4"><h5 class="fw-bold text-dark mb-0">📈 近期消費趨勢</h5></div>
                 <div class="card-body d-flex justify-content-center align-items-center" style="min-height: 280px; position: relative; width: 100%;">
                     <canvas id="trendChart"></canvas>
                 </div>
@@ -85,27 +102,22 @@
         <div class="col-md-7 mb-4">
             <div class="card h-100">
                 <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 fw-bold">🧾 載具發票紀錄 (點擊展開)</h5>
-                    <div>
-                        <a href="/api/export_csv" class="btn btn-warning btn-sm fw-bold shadow-sm me-2 text-dark">📥 匯出報表</a>
-                        <button onclick="syncData()" class="btn btn-light btn-sm fw-bold text-primary shadow-sm">🔄 模擬刷載具</button>
-                    </div>
+                    <h5 class="mb-0 fw-bold">🧾 發票明細紀錄 (點擊展開)</h5>
+                    <a href="/api/export_csv" class="btn btn-warning btn-sm fw-bold shadow-sm text-dark">📥 匯出報表</a>
                 </div>
                 <div class="card-body p-0">
-                    
                     <div class="bg-light p-3 border-bottom">
                         <form method="GET" action="/" class="d-flex gap-2 w-100 mb-0">
-                            <input type="text" name="search" class="form-control form-control-sm" placeholder="🔍 搜商家或品項 (如:高鐵)" value="{{ search_kw }}">
-                            <input type="text" name="month" class="form-control form-control-sm" placeholder="📅 月份 (如:202606)" value="{{ search_month }}" style="max-width: 140px;">
-                            <button type="submit" class="btn btn-dark btn-sm fw-bold px-3 shadow-sm">篩選</button>
+                            <input type="text" name="search" class="form-control form-control-sm" placeholder="🔍 搜商家或品項 (如:高鐵/顯示卡)" value="{{ search_kw }}">
+                            <input type="text" name="month" class="form-control form-control-sm" placeholder="📅 月份 (如:202606)" value="{{ search_month }}" style="max-width: 120px;">
+                            <button type="submit" class="btn btn-primary btn-sm fw-bold px-3 shadow-sm">篩選</button>
                             <a href="/" class="btn btn-outline-secondary btn-sm fw-bold px-3">清除</a>
                         </form>
                     </div>
-
                     <div class="table-container p-0">
                         <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0">
-                                <thead class="table-light text-secondary sticky-top">
+                            <table class="table align-middle mb-0">
+                                <thead class="table-light sticky-top">
                                     <tr>
                                         <th class="ps-4">發票號碼</th>
                                         <th>商家名稱</th>
@@ -114,23 +126,23 @@
                                 </thead>
                                 <tbody>
                                     {% for invoice in invoices %}
-                                    <tr class="clickable-row {% if invoice.is_winner %}table-warning fw-bold{% endif %}" data-bs-toggle="collapse" data-bs-target="#detail-{{ invoice.id }}">
+                                    <tr class="clickable-row {% if invoice.is_winner %}table-warning text-dark fw-bold{% endif %}" data-bs-toggle="collapse" data-bs-target="#detail-{{ invoice.id }}">
                                         <td class="ps-4">
-                                            <code class="text-dark fw-semibold">{{ invoice.inv_num }}</code>
+                                            <code class="text-primary fw-semibold">{{ invoice.inv_num }}</code>
                                             {% if invoice.is_winner %} <span class="badge bg-danger ms-1">中獎! 🎉</span> {% endif %}
                                         </td>
-                                        <td class="text-secondary small">{{ invoice.seller_name }}</td>
+                                        <td class="small">{{ invoice.seller_name }}</td>
                                         <td class="text-danger fw-bold">${{ invoice.total_amount }}</td>
                                     </tr>
                                     <tr class="detail-row collapse" id="detail-{{ invoice.id }}">
                                         <td colspan="3" class="p-0 border-0">
                                             <div class="px-4 py-3 shadow-inner">
-                                                <strong class="text-muted small d-block mb-2">🛒 消費品項：</strong>
-                                                <ul class="list-unstyled mb-0 small text-secondary">
+                                                <strong class="small d-block mb-2" style="color: #888;">🛒 消費品項明細：</strong>
+                                                <ul class="list-unstyled mb-0 small">
                                                     {% for detail in invoice.details %}
-                                                    <li class="d-flex justify-content-between mb-1 border-bottom pb-1">
-                                                        <span>{{ detail.item_name }} <span class="badge bg-light text-dark ms-1">x {{ detail.quantity }}</span></span>
-                                                        <span class="text-dark">${{ detail.unit_price * detail.quantity }}</span>
+                                                    <li class="d-flex justify-content-between mb-1 border-bottom pb-1" style="border-color: rgba(128,128,128,0.2) !important;">
+                                                        <span style="color: #999;">{{ detail.item_name }} <span class="badge bg-secondary text-light ms-1">x {{ detail.quantity }}</span></span>
+                                                        <span class="text-danger">${{ detail.unit_price * detail.quantity }}</span>
                                                     </li>
                                                     {% else %}
                                                     <li>無明細紀錄</li>
@@ -152,27 +164,77 @@
 
         <div class="col-md-5">
             <div class="card mb-4 shadow-sm">
-                <div class="card-header bg-dark text-white"><h5 class="mb-0 fw-bold">✍️ 手動記帳 (無載具)</h5></div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        <label class="form-label text-muted small fw-bold">消費品項</label>
-                        <input type="text" id="manualName" class="form-control" placeholder="例如：夜市地瓜球">
+                <div class="card-header bg-dark text-white p-0">
+                    <ul class="nav nav-tabs card-header-tabs m-0 border-0" id="inputTab" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active fw-bold text-dark bg-white rounded-top-3 border-0 py-3 px-4" id="manual-tab" data-bs-toggle="tab" data-bs-target="#manual-pane" type="button" role="tab">✍️ 手動記帳</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link fw-bold text-white border-0 py-3 px-4" id="sync-tab" data-bs-toggle="tab" data-bs-target="#sync-pane" type="button" role="tab" style="background: transparent;">📱 雲端載具綁定</button>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-body tab-content p-4">
+                    <div class="tab-pane fade show active" id="manual-pane" role="tabpanel">
+                        <div class="mb-4">
+                            <label class="form-label text-muted small fw-bold">消費金額 <span class="text-danger">*</span></label>
+                            <div class="input-group input-group-lg shadow-sm">
+                                <span class="input-group-text bg-white border-end-0 fw-bold text-muted">$</span>
+                                <input type="number" id="manualAmount" class="form-control border-start-0 fw-bold text-danger" style="font-size: 1.5rem;" placeholder="0" min="1" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label text-muted small fw-bold mb-2">快速分類 <span class="text-danger">*</span></label>
+                            <div class="row g-2 text-center">
+                                <div class="col-4">
+                                    <input type="radio" class="btn-check" name="manualCategory" id="cat1" value="餐飲食品" checked>
+                                    <label class="btn btn-outline-secondary w-100 py-2 border-0 shadow-sm rounded-3" for="cat1"><div class="fs-4 mb-1">🍔</div><small class="fw-bold">餐飲</small></label>
+                                </div>
+                                <div class="col-4">
+                                    <input type="radio" class="btn-check" name="manualCategory" id="cat2" value="交通運輸">
+                                    <label class="btn btn-outline-secondary w-100 py-2 border-0 shadow-sm rounded-3" for="cat2"><div class="fs-4 mb-1">🚌</div><small class="fw-bold">交通</small></label>
+                                </div>
+                                <div class="col-4">
+                                    <input type="radio" class="btn-check" name="manualCategory" id="cat3" value="數位3C">
+                                    <label class="btn btn-outline-secondary w-100 py-2 border-0 shadow-sm rounded-3" for="cat3"><div class="fs-4 mb-1">💻</div><small class="fw-bold">3C</small></label>
+                                </div>
+                                <div class="col-4">
+                                    <input type="radio" class="btn-check" name="manualCategory" id="cat4" value="烘焙開銷">
+                                    <label class="btn btn-outline-secondary w-100 py-2 border-0 shadow-sm rounded-3" for="cat4"><div class="fs-4 mb-1">🥐</div><small class="fw-bold">烘焙</small></label>
+                                </div>
+                                <div class="col-4">
+                                    <input type="radio" class="btn-check" name="manualCategory" id="cat5" value="購物娛樂">
+                                    <label class="btn btn-outline-secondary w-100 py-2 border-0 shadow-sm rounded-3" for="cat5"><div class="fs-4 mb-1">🛍️</div><small class="fw-bold">購物</small></label>
+                                </div>
+                                <div class="col-4">
+                                    <input type="radio" class="btn-check" name="manualCategory" id="cat6" value="其他">
+                                    <label class="btn btn-outline-secondary w-100 py-2 border-0 shadow-sm rounded-3" for="cat6"><div class="fs-4 mb-1">📦</div><small class="fw-bold">其他</small></label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label text-muted small fw-bold">品項備註 (選填)</label>
+                            <input type="text" id="manualName" class="form-control bg-light border-0" placeholder="📝 例如：夜市地瓜球...">
+                        </div>
+
+                        <button onclick="submitManual()" class="btn btn-primary w-100 fw-bold shadow-sm py-2 fs-5">儲存紀錄</button>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label text-muted small fw-bold">金額</label>
-                        <input type="number" id="manualAmount" class="form-control" placeholder="50">
+
+                    <div class="tab-pane fade" id="sync-pane" role="tabpanel">
+                        <div class="text-center mb-3">
+                            <span class="badge bg-primary-subtle text-primary mb-2 px-3 py-2 rounded-pill">財政部電子發票整合中心</span>
+                            <p class="text-muted small">請點擊下方輸入框並使用「實體條碼槍」掃描手機條碼。</p>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label text-muted small fw-bold">手機條碼 (首碼必須為 /)</label>
+                            <input type="text" id="vehicleCode" class="form-control form-control-lg text-center fw-bold" placeholder="/ABCDEFG" style="letter-spacing: 2px;" onkeypress="if(event.keyCode==13) syncData();">
+                        </div>
+                        <button onclick="syncData()" class="btn btn-dark w-100 fw-bold shadow-sm py-2 d-flex justify-content-center align-items-center gap-2">
+                            <span>一鍵同步雲端載具資料</span>
+                        </button>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label text-muted small fw-bold">分類</label>
-                        <select id="manualCategory" class="form-select">
-                            <option value="餐飲食品">餐飲食品</option>
-                            <option value="交通運輸">交通運輸</option>
-                            <option value="數位3C">數位3C</option>
-                            <option value="烘焙開銷">烘焙開銷</option>
-                            <option value="其他">其他</option>
-                        </select>
-                    </div>
-                    <button onclick="submitManual()" class="btn btn-dark w-100 fw-bold shadow-sm py-2.5">送出記帳</button>
                 </div>
             </div>
 
@@ -191,6 +253,34 @@
 </div>
 
 <script>
+    // 深色模式記憶設定
+    document.addEventListener('DOMContentLoaded', () => {
+        const themeToggleBtn = document.getElementById('themeToggle');
+        const themeIcon = document.getElementById('themeIcon');
+        const htmlElement = document.documentElement;
+        const savedTheme = localStorage.getItem('appTheme') || 'light';
+        setTheme(savedTheme);
+
+        themeToggleBtn.addEventListener('click', () => {
+            const currentTheme = htmlElement.getAttribute('data-bs-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            setTheme(newTheme);
+        });
+
+        function setTheme(theme) {
+            htmlElement.setAttribute('data-bs-theme', theme);
+            localStorage.setItem('appTheme', theme);
+            if (theme === 'dark') {
+                themeIcon.textContent = '☀️ 淺色模式';
+                themeToggleBtn.className = 'btn btn-outline-light btn-sm fw-bold';
+            } else {
+                themeIcon.textContent = '🌙 深色模式';
+                themeToggleBtn.className = 'btn btn-outline-secondary btn-sm fw-bold';
+            }
+        }
+    });
+
+    // 圓餅圖
     const rawChartData = {{ chart_data | tojson }};
     if (Object.keys(rawChartData).length > 0) {
         const ctx = document.getElementById('expenseChart').getContext('2d');
@@ -201,22 +291,44 @@
         });
     }
 
+    // 折線圖
     fetch('/api/trend_data').then(res => res.json()).then(trendData => {
         const ctxTrend = document.getElementById('trendChart').getContext('2d');
         new Chart(ctxTrend, {
             type: 'line',
             data: { labels: trendData.dates, datasets: [{ label: '每日支出 ($)', data: trendData.amounts, borderColor: '#4e73df', backgroundColor: 'rgba(78, 115, 223, 0.05)', borderWidth: 3, tension: 0.3, fill: true, pointBackgroundColor: '#4e73df', pointHoverRadius: 6 }] },
-            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } }, plugins: { legend: { display: false } } }
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, grid: { color: '#888', drawBorder: false } }, x: { grid: { display: false } } }, plugins: { legend: { display: false } } }
         });
     });
 
-    function syncData() { fetch('/api/sync_mock').then(() => location.reload()); }
+    // API 呼叫邏輯
+    function syncData() { 
+        const code = document.getElementById('vehicleCode').value;
+        if(code && !code.startsWith('/')) {
+            alert('⚠️ 手機條碼格式錯誤！開頭必須是「/」喔！');
+            return;
+        }
+        fetch('/api/sync_mock').then(() => location.reload()); 
+    }
+    
     function submitManual() {
-        const name = document.getElementById('manualName').value; const amount = document.getElementById('manualAmount').value; const category = document.getElementById('manualCategory').value;
-        if(!name || !amount) { alert('請完整填寫品項與金額！'); return; }
-        fetch('/api/add_manual', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ item_name: name, amount: amount, category: category }) })
+        const amount = document.getElementById('manualAmount').value;
+        const category = document.querySelector('input[name="manualCategory"]:checked').value;
+        const name = document.getElementById('manualName').value || category + '消費'; 
+        
+        if(!amount || amount <= 0) { 
+            alert('⚠️ 請輸入正確的消費金額！'); 
+            return; 
+        }
+
+        fetch('/api/add_manual', { 
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify({ item_name: name, amount: amount, category: category }) 
+        })
         .then(res => res.json()).then(data => { alert(data.message); location.reload(); });
     }
+    
     function checkLottery() {
         const winningNum = document.getElementById('winningNumber').value;
         fetch('/api/check_lottery', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ winning_number: winningNum }) })
